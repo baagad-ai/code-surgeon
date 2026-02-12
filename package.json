@@ -1,0 +1,39 @@
+{
+  "name": "code-surgeon",
+  "version": "1.0.0",
+  "description": "Transform GitHub issues and requirements into precise implementation plans with surgical prompts—step-by-step, file-by-file guidance for code changes.",
+  "type": "skill",
+  "author": "Prajwal Mishra",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "code-analysis",
+    "implementation-planning",
+    "surgical-prompts",
+    "codebase-understanding",
+    "github-issues",
+    "feature-planning",
+    "refactoring",
+    "breaking-changes",
+    "multi-framework",
+    "claude-skill"
+  ],
+  "homepage": "https://github.com/baagad-ai/code-surgeon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baagad-ai/code-surgeon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/baagad-ai/code-surgeon/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "skills": {
+    "code-surgeon": {
+      "name": "code-surgeon",
+      "description": "Analyze GitHub issues or plain text requirements and generate precise implementation plans with surgical prompts guiding code changes.",
+      "version": "1.0.0"
+    }
+  }
+}
