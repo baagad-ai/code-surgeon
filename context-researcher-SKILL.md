@@ -703,26 +703,3 @@ This skill is tested with:
 
 ---
 
-## Real-World Impact
-
-### Before context-researcher:
-- 30-40 minutes manual code analysis
-- Inconsistent file selection
-- Missing relevant files
-- Missed architectural patterns
-- Violations of team conventions
-
-### With context-researcher:
-- <5 minutes automated analysis
-- Consistent, intelligent file selection
-- All relevant files found
-- Architectural patterns identified
-- Team conventions extracted and enforced
-
----
-
-**Status:** ✅ Production-ready
-**Complexity:** Highest of all sub-skills
-**Critical for:** Downstream planning accuracy
-**Performance:** Exceeds targets
-

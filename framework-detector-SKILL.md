@@ -615,26 +615,3 @@ A project might have React + GraphQL + Storybook
 
 ---
 
-## Real-World Impact
-
-### Without framework-detector:
-- 10-20 minutes manually identifying tech stack
-- Inconsistent detection (different people see different frameworks)
-- Missed secondary frameworks and tooling
-- Confusion about language (is it TypeScript or JavaScript?)
-
-### With framework-detector:
-- <500ms automatic detection
-- Consistent, structured output
-- All frameworks identified
-- Confidence scores for reliability
-- Monorepo structure understood
-- Language distribution clear
-
----
-
-**Status:** ✅ Production-ready
-**Tested:** Yes (TDD test cases defined)
-**Performance:** Exceeds all targets
-**Integration:** Ready for Phase 2 orchestration
-
