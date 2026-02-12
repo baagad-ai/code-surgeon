@@ -2,20 +2,14 @@
 
 ## Quick Install
 
-### Via npm Skills Registry
+### Via skills.sh Registry
 ```bash
-npx skills add username/code-surgeon
+npx skills add baagad-ai/code-surgeon
 ```
 
 ### Via Direct Clone
 ```bash
 git clone https://github.com/baagad-ai/code-surgeon.git ~/.claude/skills/code-surgeon
-```
-
-### Via Claude Code
-If using Claude Code CLI:
-```bash
-claude install code-surgeon
 ```
 
 ---
