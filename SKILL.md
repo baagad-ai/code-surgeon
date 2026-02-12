@@ -1088,40 +1088,6 @@ code-surgeon saves state locally, but if you later share the PLAN.md output, it 
 
 ---
 
-## Real-World Impact
-
-### Before code-surgeon:
-- 30-40 minutes of manual analysis per issue
-- Scattered notes across Slack/email
-- Different approaches by different people
-- Frequent "what did we decide?" discussions
-
-### With code-surgeon:
-- 5-30 minutes of automated analysis (depending on depth)
-- Structured plan everyone can read
-- Consistent approach across team
-- Clear surgical prompts ready for AI agents
-- Resumable if interrupted
-- Zero data loss
-
-**Example output:**
-```
-User: /code-surgeon "Add JWT token refresh"
-↓
-5 minutes later...
-↓
-Output files:
-├─ PLAN.md (human-readable, 2 pages)
-├─ plan.json (structured, for tools)
-├─ interactive.json (step-through mode)
-└─ Complete state saved for resumption
-
-Cost: $0.07 for ~60K tokens of analysis
-Accuracy: 95% for STANDARD depth
-```
-
----
-
 ## Next Steps After Generation
 
 Once code-surgeon completes:
