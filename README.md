@@ -52,8 +52,8 @@ code-surgeon analyzes your codebase and requirements, then generates:
 ### Installation
 
 ```bash
-# Via npm skills registry
-npx skills add username/code-surgeon
+# Via skills.sh registry
+npx skills add baagad-ai/code-surgeon
 
 # Or clone directly
 git clone https://github.com/baagad-ai/code-surgeon.git ~/.claude/skills/code-surgeon
