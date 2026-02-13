@@ -1812,6 +1812,860 @@ A successful review analysis meets ALL of these:
 
 ---
 
+## Optimization Mode Orchestration
+
+Optimization mode performs deep analysis to identify and prioritize code improvements: performance bottlenecks, security vulnerabilities, and efficiency gains. This section details the exact 6-phase orchestration workflow.
+
+### Executive Summary
+
+**Duration:** 18 minutes (STANDARD) | **Token Budget:** 60K | **Accuracy:** 95%
+
+Optimization mode routes through 6 core sub-skills in strict sequence to detect bottlenecks, security issues, and efficiency opportunities, then prioritize them by impact and effort:
+
+```
+Framework Detection (2 min)
+    ↓
+Context Research (5 min)
+    ↓
+Performance Bottleneck Detection (3 min)
+    ↓
+Security Vulnerability Scanning (3 min)
+    ↓
+Efficiency Analysis (2 min)
+    ↓
+Prioritization & Roadmapping (5 min)
+    ↓
+Optimization Report (Generated Markdown)
+```
+
+### Phase 1: Framework Detection (2 minutes)
+
+**Sub-skill:** `/code-surgeon-framework-detector`
+
+**Purpose:** Detect tech stack, programming languages, frameworks, versions, and monorepo structure (identical to Discovery Phase 1).
+
+**Input Contract:**
+```json
+{
+  "repo_root": "/absolute/path/to/repo",
+  "timeout_ms": 120000
+}
+```
+
+**Field Context:**
+- `repo_root`: User-provided (absolute path to repository)
+- `timeout_ms`: Global default (2 minutes for Phase 1)
+
+**Output Contract (Success):**
+```json
+{
+  "primary_language": "typescript",
+  "primary_framework": "React",
+  "frameworks": [
+    {
+      "name": "React",
+      "version": "18.2.0",
+      "language": "typescript",
+      "category": "frontend"
+    },
+    {
+      "name": "Express",
+      "version": "4.18.2",
+      "language": "typescript",
+      "category": "backend"
+    }
+  ],
+  "languages": [
+    {"language": "typescript", "file_count": 145, "percentage": 85}
+  ],
+  "is_monorepo": false,
+  "has_typescript": true,
+  "has_testing": true,
+  "has_documentation": true,
+  "confidence": 0.96
+}
+```
+
+**Error Handling:**
+- If repo not found: Stop immediately, return "Repository not found"
+- If unreadable: Stop immediately, return "Repository access denied"
+- If timeout: Return partial results with low confidence flag
+
+**Token Cost:** ~1K tokens
+
+---
+
+### Phase 2: Context Research (5 minutes)
+
+**Sub-skill:** `/code-surgeon-context-researcher`
+
+**Purpose:** Analyze codebase structure, build dependency graph, identify structural patterns, and find team conventions.
+
+**Input Contract:**
+```json
+{
+  "issue_type": "performance",
+  "requirements": ["Identify optimization opportunities"],
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Field Context:**
+- `primary_language`, `frameworks`: From Phase 1 output (previous phase)
+- `repo_root`: User-provided (same as Phase 1)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (5 minutes for Phase 2)
+
+**Output Contract (Success):**
+```json
+{
+  "files_selected": [
+    {
+      "path": "src/api/users.ts",
+      "tier": 1,
+      "size_bytes": 3200,
+      "relevance": "critical",
+      "reason": "High-traffic API endpoint, likely has performance issues"
+    }
+  ],
+  "file_count": {
+    "tier_1": 8,
+    "tier_2": 25,
+    "tier_3": 12,
+    "total": 45
+  },
+  "dependency_graph": {
+    "src/api/users.ts": {
+      "imports": ["src/db/queries.ts"],
+      "imported_by": ["src/index.ts"],
+      "impact": "critical"
+    }
+  },
+  "structural_patterns": [...],
+  "team_conventions": [...]
+}
+```
+
+**Error Handling:**
+- If timeout: Return partial files found (Tier 1 only), mark as incomplete
+- If token budget exceeded: Remove Tier 3 patterns, retry with Tier 1-2 only
+- If no files found: Stop, return "Repository structure unreadable"
+
+**Token Cost:** 30K-90K tokens (varies by depth mode)
+
+---
+
+### Phase 3: Performance Bottleneck Detection (3 minutes)
+
+**Sub-skill:** `/code-surgeon-performance-profiler` (new in Optimization mode)
+
+**Purpose:** Identify slow operations (database queries, API endpoints, frontend rendering, build processes), detect inefficient patterns, and assess impact on user experience and system resources.
+
+**Input Contract:**
+```json
+{
+  "files_selected": [...],  // from Phase 2
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "dependency_graph": {...},  // from Phase 2
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 180
+}
+```
+
+**Field Context:**
+- `files_selected`, `dependency_graph`: From Phase 2 output
+- `primary_language`, `frameworks`: From Phase 1 output
+- `repo_root`: User-provided (same as Phases 1-2)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "performance_bottlenecks": [
+    {
+      "severity": "high",
+      "type": "database",
+      "location": "src/db/queries.ts:45",
+      "issue": "N+1 query problem",
+      "description": "Query users, then in loop query posts per user",
+      "current_performance": "1000ms for 100 users",
+      "impact": "2 HTTP requests per user = 200 queries for 100 users",
+      "optimization": "Use JOIN or batch load posts",
+      "estimated_improvement": "100ms (10x faster)",
+      "effort": "30 minutes"
+    },
+    {
+      "severity": "medium",
+      "type": "frontend",
+      "location": "src/components/UserList.tsx:20",
+      "issue": "Unnecessary re-renders",
+      "description": "Component re-renders on every parent update",
+      "estimated_improvement": "10ms (5x faster)",
+      "effort": "15 minutes"
+    },
+    {
+      "severity": "low",
+      "type": "build",
+      "location": "webpack.config.js",
+      "issue": "Large bundle size",
+      "description": "Bundle is 500KB (uncompressed)",
+      "optimization": "Code splitting, tree shaking, dynamic imports",
+      "estimated_improvement": "50% bundle size reduction",
+      "effort": "2 hours"
+    }
+  ],
+  "bottleneck_count": 3,
+  "critical_count": 0,
+  "high_count": 1,
+  "medium_count": 1,
+  "low_count": 1
+}
+```
+
+**Error Handling:**
+- If no bottlenecks found: Return empty array (success)
+- If timeout: Return bottlenecks found so far
+- If uncertain about impact: Mark with low confidence
+
+**Token Cost:** ~4K-7K tokens
+
+---
+
+### Phase 4: Security Vulnerability Scanning (3 minutes)
+
+**Sub-skill:** `/code-surgeon-security-scanner` (new in Optimization mode)
+
+**Purpose:** Identify security vulnerabilities (input validation gaps, authentication/authorization issues, dependency vulnerabilities), assess impact and severity, provide remediation code.
+
+**Input Contract:**
+```json
+{
+  "files_selected": [...],  // from Phase 2
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "scan_type": "all",
+  "timeout_seconds": 180
+}
+```
+
+**Field Context:**
+- `files_selected`: From Phase 2 output
+- `primary_language`, `frameworks`: From Phase 1 output
+- `repo_root`: User-provided (same as Phases 1-3)
+- `scan_type`: Can be "vulnerabilities", "dependencies", "input_validation", "authentication", or "all" (default)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "security_vulnerabilities": [
+    {
+      "severity": "critical",
+      "type": "sql_injection",
+      "location": "src/db/queries.ts:120",
+      "issue": "Unsanitized SQL query",
+      "description": "User input concatenated directly into SQL",
+      "impact": "Database compromise, data leak",
+      "current_code": "const query = `SELECT * FROM users WHERE name = '${userName}'`;",
+      "fixed_code": "const query = 'SELECT * FROM users WHERE name = ?'; db.query(query, [userName]);",
+      "effort": "15 minutes"
+    },
+    {
+      "severity": "high",
+      "type": "xss",
+      "location": "src/components/UserProfile.tsx:45",
+      "issue": "Unsanitized HTML render",
+      "description": "User-generated content rendered as HTML",
+      "impact": "Malicious scripts can run in user browser",
+      "effort": "10 minutes"
+    },
+    {
+      "severity": "medium",
+      "type": "dependency",
+      "location": "package.json",
+      "issue": "Outdated dependency with CVE",
+      "description": "lodash 4.17.19 has known vulnerabilities",
+      "current_version": "4.17.19",
+      "fixed_version": "4.17.21",
+      "effort": "5 minutes"
+    }
+  ],
+  "vulnerability_count": 3,
+  "critical_count": 1,
+  "high_count": 1,
+  "medium_count": 1,
+  "low_count": 0
+}
+```
+
+**Error Handling:**
+- If no vulnerabilities found: Return empty array (success)
+- If timeout: Return vulnerabilities found so far
+- If PII/secrets detected: Mark as HIGH risk but don't output raw content
+
+**Token Cost:** ~4K-7K tokens
+
+---
+
+### Phase 5: Efficiency Analysis (2 minutes)
+
+**Sub-skill:** `/code-surgeon-efficiency-analyzer` (new in Optimization mode)
+
+**Purpose:** Identify code quality improvements (complexity reduction, dead code elimination, duplication removal), resource efficiency gains (memory, CPU, disk I/O), and maintainability improvements (readability, testing, documentation).
+
+**Input Contract:**
+```json
+{
+  "files_selected": [...],  // from Phase 2
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "dependency_graph": {...},  // from Phase 2
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 120
+}
+```
+
+**Field Context:**
+- `files_selected`, `dependency_graph`: From Phase 2 output
+- `primary_language`, `frameworks`: From Phase 1 output
+- `repo_root`: User-provided (same as Phases 1-4)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "efficiency_improvements": [
+    {
+      "severity": "medium",
+      "type": "code_quality",
+      "location": "src/utils/helpers.ts",
+      "issue": "Complex nested conditionals",
+      "description": "Function has 8 nested if-else statements",
+      "current_complexity": "cyclomatic complexity = 8",
+      "target_complexity": "< 5",
+      "optimization": "Use switch statement or early returns",
+      "estimated_improvement": "Easier to read and test",
+      "effort": "30 minutes"
+    },
+    {
+      "severity": "low",
+      "type": "dead_code",
+      "location": "src/services/auth.ts:100-150",
+      "issue": "Unused function",
+      "description": "oldLoginMethod() not called anywhere",
+      "impact": "Code maintenance burden",
+      "optimization": "Remove dead code",
+      "effort": "5 minutes"
+    },
+    {
+      "severity": "medium",
+      "type": "duplication",
+      "location": "src/components/",
+      "issue": "Duplicated component logic",
+      "description": "3 similar form components with repeated validation",
+      "impact": "Maintenance burden, inconsistency",
+      "optimization": "Extract shared validation to hook",
+      "effort": "1 hour"
+    }
+  ],
+  "improvement_count": 3,
+  "critical_count": 0,
+  "high_count": 0,
+  "medium_count": 2,
+  "low_count": 1
+}
+```
+
+**Error Handling:**
+- If no improvements found: Return empty array (success)
+- If timeout: Return improvements found so far
+- If uncertain: Mark with low confidence
+
+**Token Cost:** ~2K-4K tokens
+
+---
+
+### Phase 6: Prioritization & Roadmapping (5 minutes)
+
+**Sub-skill:** `/code-surgeon-prioritization-roadmapper` (new in Optimization mode)
+
+**Purpose:** Integrate findings from Performance, Security, and Efficiency analyses into a prioritized roadmap, rank improvements by Impact/Effort ratio, identify dependencies, and estimate timeline.
+
+**Note:** Phase 6 is LONGER (5 min vs 1-2 min in other modes) because prioritization requires ranking improvements across all analyses and building implementation roadmap.
+
+**Input Contract:**
+```json
+{
+  "performance_bottlenecks": [...],  // from Phase 3
+  "security_vulnerabilities": [...],  // from Phase 4
+  "efficiency_improvements": [...],  // from Phase 5
+  "dependency_graph": {...},  // from Phase 2
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Field Context:**
+- `performance_bottlenecks`, `security_vulnerabilities`, `efficiency_improvements`: From Phases 3-5 outputs
+- `dependency_graph`: From Phase 2 output
+- `repo_root`: User-provided (same as Phases 1-5)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "prioritization": {
+    "critical": [
+      {
+        "issue": "SQL injection vulnerability in user query",
+        "fix": "Parameterize all SQL queries",
+        "severity": "critical",
+        "effort": "15 minutes",
+        "impact_score": 9.5,
+        "effort_score": 1,
+        "roi": 9.5
+      }
+    ],
+    "high": [
+      {
+        "issue": "N+1 query problem in user API",
+        "fix": "Batch load posts per user ID",
+        "severity": "high",
+        "effort": "30 minutes",
+        "impact_score": 8,
+        "effort_score": 3,
+        "roi": 2.67
+      }
+    ],
+    "medium": [...],
+    "low": [...]
+  },
+  "implementation_order": [
+    {
+      "rank": 1,
+      "fix": "Fix SQL injection vulnerability",
+      "blocking": [],
+      "unblocks": ["N+1 query optimization"],
+      "estimated_time": "15 minutes"
+    },
+    {
+      "rank": 2,
+      "fix": "N+1 query optimization",
+      "blocking": [],
+      "unblocks": [],
+      "estimated_time": "30 minutes"
+    }
+  ],
+  "estimated_timeline": "Estimated total: 2 hours for high-priority items, 1 week for all recommendations"
+}
+```
+
+**Error Handling:**
+- If no prioritization possible: Return empty prioritization (success)
+- If timeout: Return prioritization completed so far
+- If circular dependencies: Document and note in output
+
+**Token Cost:** ~2K-4K tokens
+
+---
+
+### Optimization Mode Sub-Skill Routing Table
+
+| Phase | Sub-Skill | Input Source | Output Used By | Token Budget | Duration |
+|-------|-----------|--------------|----------------|--------------|----------|
+| 1 | framework-detector | User repo_root | Phases 2-6 | ~1K | 2 min |
+| 2 | context-researcher | Phase 1 + user repo | Phases 3-6 | ~30-60K | 5 min |
+| 3 | performance-profiler | Phases 1-2 | Phases 6, Report | ~4-7K | 3 min |
+| 4 | security-scanner | Phases 1-2 | Phases 6, Report | ~4-7K | 3 min |
+| 5 | efficiency-analyzer | Phases 1-2 | Phase 6, Report | ~2-4K | 2 min |
+| 6 | prioritization-roadmapper | Phases 3-5 | Report | ~2-4K | 5 min |
+
+---
+
+### Token Budgeting by Depth Mode
+
+**QUICK Mode (5 min, ~30K tokens, 85% accuracy)**
+- Phase 1: 1K (framework detection)
+- Phase 2: 14K (Tier 1 + Tier 2, no Tier 3)
+- Phase 3: 2K (high-severity bottlenecks only)
+- Phase 4: 2K (critical security issues only)
+- Phase 5: 1K (high-impact improvements only)
+- Phase 6: 2K (top 3-5 recommendations)
+- Output: Markdown (optimization report, critical items only)
+- Reserve: 6K for formatting
+- **Total: 30K**
+
+**STANDARD Mode (18 min, ~60K tokens, 95% accuracy) ← DEFAULT**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 35K (Tier 1 + Tier 2 + partial Tier 3)
+- Phase 3: 6K (all performance bottlenecks with examples)
+- Phase 4: 6K (all security vulnerabilities with remediation)
+- Phase 5: 3K (all efficiency improvements)
+- Phase 6: 4K (complete prioritization and roadmap)
+- Output: Markdown + JSON
+- Reserve: 4K for formatting
+- **Total: 60K**
+
+**DEEP Mode (30 min, ~90K tokens, 99% accuracy)**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 58K (all Tier 1 + Tier 2 + Tier 3)
+- Phase 3: 8K (detailed bottleneck analysis with before/after code)
+- Phase 4: 8K (comprehensive vulnerability scan + remediation code)
+- Phase 5: 5K (detailed efficiency improvements with refactoring examples)
+- Phase 6: 6K (detailed roadmap with implementation guide per improvement)
+- Output: Markdown + JSON + Interactive
+- Reserve: 4K for formatting
+- **Total: 90K**
+
+---
+
+### Depth Mode Behavior Details
+
+**QUICK Mode (Optimization)**
+- High-severity bottlenecks only
+- Critical security issues only
+- Quick wins (low effort, high impact)
+- Top 3-5 recommendations
+- No implementation details
+- Output: Markdown report only
+
+**STANDARD Mode (Optimization) - DEFAULT**
+- All bottlenecks (high + medium severity)
+- All security issues
+- Efficiency improvements
+- Implementation code examples
+- Effort and impact estimates
+- Prioritization by impact/effort ratio
+- Performance before/after estimates
+- Output: Markdown + JSON structured data
+
+**DEEP Mode (Optimization)**
+- All bottlenecks + low severity items
+- Detailed vulnerability analysis with testing strategy
+- Low-level efficiency improvements
+- Before/after code examples (10-15 lines)
+- Testing strategy for each improvement
+- Rollout plan and monitoring recommendations
+- Long-term optimization roadmap
+- Output: Markdown report + JSON data + Interactive improvement explorer
+
+---
+
+### Error Handling for Optimization Mode
+
+**Sub-Skill Invocation Failure**
+```
+Phase [N] failed to complete.
+├─ First attempt: Retry once (wait 5 seconds)
+├─ If still fails:
+│  ├─ Save state.json immediately
+│  ├─ Show: "Phase [N] failed. Session saved."
+│  ├─ Show session ID: surgeon-20250213-abc123xyz
+│  ├─ Suggest: "/code-surgeon-resume surgeon-20250213-abc123xyz"
+│  └─ Stop execution
+└─ Rationale: Prevents loss of work, allows resume from checkpoint
+```
+
+**Token Budget Exceeded**
+```
+Approaching 85% of budget (51K/60K):
+├─ Log warning
+├─ Continue with existing analysis
+└─ Rationale: Safety threshold to prevent mid-phase overrun
+
+Exceed 100% of budget (>60K):
+├─ Stop loading new files
+├─ Analyze what was loaded
+├─ Save state.json
+├─ Show: "Exceeded token budget for STANDARD mode"
+├─ Offer: (a) Generate report with loaded data, (b) Switch to QUICK mode and retry
+└─ Rationale: Prevents silent token overflow
+```
+
+**Repository Issues**
+```
+Repository not found:
+├─ Show error immediately in Phase 1
+├─ Stop execution
+└─ Suggest: "Check repo path and retry"
+
+Analysis timeout in Phase N:
+├─ Return partial results from completed phases
+├─ Mark incomplete status
+├─ Suggest: Switch to QUICK mode for faster analysis
+└─ Offer: Save and retry later
+```
+
+---
+
+### Prioritization Framework
+
+Improvements are ranked by Impact/Effort (ROI) ratio and severity:
+
+#### Tier 1: Critical Security & High Impact, Low Effort (Do First)
+
+**Characteristics:** Security vulnerabilities, critical performance issues that are quick to fix
+
+**Examples:**
+- SQL injection vulnerability (fix: 15 min, impact: 9.5/10)
+- Upgrade vulnerable dependency (fix: 5 min, impact: 8/10)
+- Missing input validation (fix: 20 min, impact: 8/10)
+
+**ROI:** 0.5+ (impact / effort ratio)
+
+---
+
+#### Tier 2: High Impact, Medium Effort (Do Next)
+
+**Characteristics:** Performance bottlenecks, architectural issues with clear remediation
+
+**Examples:**
+- N+1 database query problem (fix: 30 min, impact: 8/10)
+- Refactor complex function (fix: 1-2 hours, impact: 7/10)
+- Add missing indexes (fix: 20 min, impact: 7/10)
+
+**ROI:** 0.2-0.5
+
+---
+
+#### Tier 3: Medium Impact, Low Effort (Quick Wins)
+
+**Characteristics:** Code quality, minor optimizations, low-hanging fruit
+
+**Examples:**
+- Remove dead code (fix: 5 min, impact: 4/10)
+- Simplify conditionals (fix: 15 min, impact: 5/10)
+- Extract duplicated code (fix: 30 min, impact: 5/10)
+
+**ROI:** 0.2+
+
+---
+
+#### Tier 4: Medium Impact, Medium Effort (Schedule Later)
+
+**Characteristics:** Larger refactoring with measurable benefits
+
+**Examples:**
+- Extract shared component (fix: 1 hour, impact: 6/10)
+- Add caching layer (fix: 2 hours, impact: 7/10)
+- Optimize build process (fix: 4 hours, impact: 5/10)
+
+**ROI:** 0.1-0.2
+
+---
+
+#### Tier 5: High Impact, High Effort (Strategic)
+
+**Characteristics:** Major architectural changes or migrations
+
+**Examples:**
+- Migrate to microservices (fix: weeks, impact: 9/10)
+- Database migration (fix: days, impact: 8/10)
+- Framework upgrade (fix: days, impact: 7/10)
+
+**ROI:** 0.05-0.1 (high impact but long effort)
+
+---
+
+#### Tier 6: Low Impact or High Effort (Defer or Skip)
+
+**Characteristics:** Minimal value or disproportionate effort
+
+**Examples:**
+- Style consistency (fix: hours, impact: 2/10)
+- Variable renames (fix: minutes, impact: 1/10)
+- Documentation polish (fix: hours, impact: 2/10)
+
+**ROI:** <0.05
+
+---
+
+### Test Scenarios
+
+These 4 scenarios verify optimization mode works across common use cases:
+
+#### Scenario 1: Performance Optimization
+
+**User Request:** "This endpoint is slow, optimize it"
+
+**Command:** `/code-surgeon --mode=optimization --depth=STANDARD`
+
+**Expected Flow:**
+1. Phase 1: Detect Node.js + Express + TypeScript
+2. Phase 2: Identify 40-50 files, focus on API endpoint
+3. Phase 3: Find N+1 database queries, missing indexes, large response payloads
+4. Phase 4: Scan for query injection vulnerabilities
+5. Phase 5: Identify caching opportunities
+6. Phase 6: Prioritize fixes (1. Add index, 2. Batch queries, 3. Add caching)
+
+**Output:**
+- Database query analysis (N+1 detection, missing indexes)
+- Response size analysis
+- Caching opportunities
+- Implementation code examples
+
+**Success Criteria:**
+- 3-5 bottlenecks identified with concrete improvements
+- Performance metrics estimated (before/after)
+- Implementation effort clear
+- Code examples provided
+
+---
+
+#### Scenario 2: Security Audit
+
+**User Request:** "Find security vulnerabilities"
+
+**Command:** `/code-surgeon --mode=optimization --depth=DEEP`
+
+**Expected Flow:**
+1-2. Framework + context detection
+3. Performance analysis (cache misses, slow endpoints)
+4. Deep security scan (SQL injection, XSS, auth gaps, CVEs)
+5. Efficiency analysis (dead code, duplication)
+6. Comprehensive prioritization with security-first ordering
+
+**Output:**
+- SQL injection risks with specific line numbers
+- XSS vulnerabilities
+- Authentication gaps
+- Dependency vulnerabilities (CVEs)
+- Remediation code for each issue
+
+**Success Criteria:**
+- All HIGH/CRITICAL risks identified
+- Remediation code provided (DEEP mode)
+- Impact severity clear
+- Implementation effort estimated
+
+---
+
+#### Scenario 3: Bundle Size Reduction
+
+**User Request:** "Reduce bundle size"
+
+**Command:** `/code-surgeon --mode=optimization --depth=STANDARD`
+
+**Expected Flow:**
+1-2. Framework + context detection (focus on frontend/build files)
+3. Performance analysis (bundle size, large dependencies, slow loads)
+4. Security scan (outdated npm packages)
+5. Efficiency analysis (dead code, duplication, unused polyfills)
+6. Prioritization with bundle-size-first ordering
+
+**Output:**
+- Large dependencies identified
+- Code splitting opportunities
+- Tree shaking analysis
+- Dead code elimination
+- Asset optimization recommendations
+
+**Success Criteria:**
+- Large dependencies identified with sizes
+- Code splitting opportunities clear
+- Estimated size reduction (50-80%)
+- Implementation steps provided
+
+---
+
+#### Scenario 4: Technical Debt Cleanup
+
+**User Request:** "What can we improve in this codebase?"
+
+**Command:** `/code-surgeon --mode=optimization --depth=DEEP`
+
+**Expected Flow:**
+1-2. Full codebase analysis
+3. Performance hotspots
+4. Security assessment
+5. Deep efficiency analysis (complexity, duplication, test gaps, doc gaps)
+6. Comprehensive roadmap with effort estimates
+
+**Output:**
+- Code complexity hotspots
+- Duplicated code regions
+- Dead code sections
+- Missing tests
+- Inconsistent patterns
+- Documentation gaps
+- Implementation plan with ROI per improvement
+
+**Success Criteria:**
+- All improvement categories identified
+- Effort estimates realistic
+- ROI calculations clear
+- Implementation sequencing logical
+
+---
+
+### Implementation Guide Template
+
+When implementing recommended improvements, follow this guide:
+
+1. **Pick the next tier-1 item** from the prioritization roadmap
+2. **Review the remediation code** provided
+3. **Create a branch:** `git checkout -b optimize/<issue-name>`
+4. **Implement the fix** using provided code examples
+5. **Test thoroughly:** Run unit tests, integration tests, performance tests
+6. **Verify improvement:** Measure before/after metrics
+7. **Commit:** `git commit -m "optimize: <description>"`
+8. **Review:** Have team review (especially security fixes)
+9. **Deploy:** Merge and deploy to staging first
+10. **Monitor:** Track metrics to verify improvements
+
+---
+
+### Quick Wins Guidance
+
+Quick wins are Tier 3 improvements (medium impact, low effort). Implement these first for fast wins:
+
+**Selection criteria:**
+- Effort: < 30 minutes
+- Impact: 4-5/10
+- Risk: Low (no breaking changes)
+- Value: Improves code quality, performance, or security
+
+**Examples:**
+- Remove 5+ unused variables
+- Simplify nested conditionals (reduce cyclomatic complexity)
+- Extract 3+ duplicated code blocks
+- Upgrade 2+ outdated dependencies
+- Add 10+ missing input validations
+
+**Expected outcome:** 5-10 quick wins yielding 20-30% cumulative improvement at ~2 hours of effort.
+
+---
+
+### Optimization Mode Success Criteria
+
+A successful optimization analysis meets ALL of these:
+
+- [ ] 6-phase workflow completed without critical errors
+- [ ] All 6 sub-skills invoked with valid input/output contracts
+- [ ] Token budget not exceeded (with <10% safety margin)
+- [ ] Optimization report generated in required format(s)
+- [ ] Performance bottlenecks identified with metrics
+- [ ] Security vulnerabilities identified with remediation code
+- [ ] Efficiency improvements identified with effort estimates
+- [ ] Improvements prioritized by impact/effort ratio
+- [ ] Implementation roadmap created with sequencing
+- [ ] No hallucinated bottlenecks or vulnerabilities
+- [ ] Session resumable if interrupted
+- [ ] Depth mode behavior correct (QUICK < STANDARD < DEEP)
+- [ ] ROI calculations accurate and justify prioritization
+
+---
+
 ## Hub-and-Spoke Architecture with Mode-Specific Routing
 
 ```
@@ -1839,19 +2693,37 @@ A successful review analysis meets ALL of these:
          │  └─ Phase 6: Risks / Prompts / Validation   │
          └──────────────┬────────────────────────────┘
                         ↓
-              ┌──────────────────────┐
-              │  Discovery Mode Only │
-              ├──────────────────────┤
-              │ Specialist Sub-Skills│
-              │ ├─ Architecture      │
-              │ │   Analyzer (Ph 3)  │
-              │ ├─ Pattern           │
-              │ │   Identifier (Ph4) │
-              │ ├─ Risk Analyzer     │
-              │ │   (Ph 6)           │
-              │ └─ Output: Audit     │
-              │    Report            │
-              └──────────┬───────────┘
+              ┌──────────────────────────────────────────┐
+              │  Discovery Mode Only                    │
+              ├──────────────────────────────────────────┤
+              │ Specialist Sub-Skills (Discovery)       │
+              │ ├─ Architecture Analyzer (Ph 3)        │
+              │ ├─ Pattern Identifier (Ph 4)           │
+              │ ├─ Risk Analyzer (Ph 6)                │
+              │ └─ Output: Audit Report                │
+              └──────────┬───────────────────────────┘
+                         ↓
+              ┌──────────────────────────────────────────┐
+              │  Review Mode Only                       │
+              ├──────────────────────────────────────────┤
+              │ Specialist Sub-Skills (Review)         │
+              │ ├─ Impact Analyzer (Ph 3)             │
+              │ ├─ Breaking Change Detector (Ph 4)    │
+              │ ├─ Pre-Flight Validator (Ph 5)        │
+              │ ├─ Safety Verifier (Ph 6)             │
+              │ └─ Output: Risk Report                 │
+              └──────────┬───────────────────────────┘
+                         ↓
+              ┌──────────────────────────────────────────┐
+              │  Optimization Mode Only                 │
+              ├──────────────────────────────────────────┤
+              │ Specialist Sub-Skills (Optimization)    │
+              │ ├─ Performance Profiler (Ph 3)         │
+              │ ├─ Security Scanner (Ph 4)             │
+              │ ├─ Efficiency Analyzer (Ph 5)          │
+              │ ├─ Prioritization Roadmapper (Ph 6)    │
+              │ └─ Output: Optimization Report         │
+              └──────────┬───────────────────────────┘
                          ↓
               ┌──────────────────────┐
               │    Output Generator  │
@@ -1899,6 +2771,25 @@ Phase 5: Pre-Flight Validator (Review-Specific)
 Phase 6: Safety Verifier (Review-Specific)
          ↓
     Risk Report
+    (Markdown, JSON, or Interactive)
+```
+
+**Optimization Mode Sub-Skill Flow:**
+
+```
+Phase 1: Framework Detection
+         ↓
+Phase 2: Context Research
+         ↓
+Phase 3: Performance Bottleneck Detector (Optimization-Specific)
+         ↓
+Phase 4: Security Scanner (Optimization-Specific)
+         ↓
+Phase 5: Efficiency Analyzer (Optimization-Specific)
+         ↓
+Phase 6: Prioritization & Roadmapper (Optimization-Specific)
+         ↓
+    Optimization Report
     (Markdown, JSON, or Interactive)
 ```
 
