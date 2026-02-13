@@ -413,6 +413,13 @@ Audit Report (Generated Markdown)
 }
 ```
 
+**Field Context:**
+- `files_selected`, `primary_language`, `frameworks`: From Phase 1-2 outputs
+- `architecture_type`, `modules`: From Phase 3 output
+- `repo_root`: User-provided (same as Phases 1-5)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (2 minutes for Phase 6)
+
 **Output Contract (Success):**
 ```json
 {
@@ -469,7 +476,7 @@ Audit Report (Generated Markdown)
 |-------|-----------|--------------|----------------|--------------|----------|
 | 1 | framework-detector | User repo_root | Phases 2-6 | ~1K | 2 min |
 | 2 | context-researcher | Phase 1 + user repo | Phases 3-6 | ~30-60K | 5 min |
-| 3 | architecture-analyzer | Phases 1-2 | Phases 4-6, Report | ~3-6K | 3 min |
+| 3 | architecture-detector | Phases 1-2 | Phases 4-6, Report | ~3-6K | 3 min |
 | 4 | pattern-identifier | Phases 1-3 | Phase 6, Report | ~3-6K | 3 min |
 | 5 | (Built-in) | Phase 1 data | Report | ~1K | 2 min |
 | 6 | risk-analyzer | Phases 1-5 | Report | ~3-6K | 2 min |
@@ -1013,10 +1020,10 @@ code-surgeon is an **orchestrator** that:
 2. **Classifies** the task against the decision tree
 3. **Validates** and checks for PII/secrets
 4. **Dispatches** to mode-specific analysis pipeline:
-   - **Discovery mode:** Framework Detector (parallel) Context Researcher → Architecture Analyzer → Pattern Identifier → Tech Stack Analyzer → Risk Analyzer
+   - **Discovery mode:** Framework Detector → Context Researcher → Architecture Detector → Pattern Identifier → Tech Stack Analyzer → Risk Analyzer
    - **Review mode:** Impact Analyzer → Breaking Change Detector → Pre-flight Validator
    - **Optimization mode:** Performance Profiler → Security Scanner → Efficiency Analyzer
-   - **Implementation Planning mode:** Issue Analyzer + Framework Detector (parallel) → Context Researcher → Implementation Planner → Surgical Prompt Generator
+   - **Implementation Planning mode:** Issue Analyzer → Framework Detector → Context Researcher → Implementation Planner → Surgical Prompt Generator
 5. **Manages state** across all phases with full resumption support
 6. **Returns** outputs (format depends on mode)
 
