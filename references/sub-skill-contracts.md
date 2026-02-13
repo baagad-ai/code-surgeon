@@ -1195,9 +1195,9 @@ interface ImplementationPlanError {
   "analysis": {
     "breaking_changes": [],
     "critical_path": {
-      "task_ids": ["T1", "T2", "T4", "T5", "T6", "T7"],
-      "total_hours": 12,
-      "phase_sequence": [1, 2, 3]
+      "task_ids": ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+      "total_hours": 14,
+      "phase_sequence": [1, 2, 3, 4, 5, 6, 7]
     },
     "parallelizable_tasks": [
       ["T1", "T2"],
@@ -1316,7 +1316,7 @@ interface SurgicalPrompt {
   language: string;
   token_estimate: number;
 
-  // 9 Sections (breaking_changes optional if not applicable)
+  // 8-9 Sections (breaking_changes optional if not applicable)
   sections: {
     // Section 1: Objective
     objective: string;  // 1-2 sentences, crystal clear goal
@@ -1750,6 +1750,66 @@ interface ArchitectureAnalysis {
     "circular_dependencies": [],
     "modularity_score": 78
   }
+}
+```
+
+**Example 2: Node.js/Express Backend**
+
+Architecture for REST API with microservices:
+
+**Input:**
+```json
+{
+  "requirement": "Add JWT authentication to API",
+  "frameworks": ["express", "node.js"],
+  "primary_language": "typescript"
+}
+```
+
+**Output:**
+```json
+{
+  "architecture": {
+    "style": "Microservices (API Gateway pattern)",
+    "layers": ["API Gateway", "Auth Service", "Business Logic", "Data Layer"],
+    "description": "Distributed service architecture with JWT-secured endpoints"
+  },
+  "modules": [
+    {
+      "name": "auth-service",
+      "responsibilities": ["JWT generation", "Token validation", "User management"],
+      "exports": ["generateToken", "validateToken"],
+      "dependencies": ["bcrypt", "jsonwebtoken"],
+      "complexity": "medium"
+    },
+    {
+      "name": "api-gateway",
+      "responsibilities": ["Request routing", "Authentication middleware", "Rate limiting"],
+      "exports": ["authenticate", "authorize"],
+      "depends_on": ["auth-service"],
+      "complexity": "high"
+    },
+    {
+      "name": "business-logic",
+      "responsibilities": ["Core domain logic"],
+      "depends_on": ["auth-service", "data-layer"],
+      "complexity": "high"
+    },
+    {
+      "name": "data-layer",
+      "responsibilities": ["Database access", "Caching"],
+      "exports": ["query", "mutate"],
+      "dependencies": ["postgres", "redis"],
+      "complexity": "medium"
+    }
+  ],
+  "communication_patterns": ["REST API", "Internal RPC", "Message Queue"],
+  "external_dependencies": ["PostgreSQL", "Redis", "JWT libraries"],
+  "modularity_score": 78,
+  "identified_risks": [
+    "Token validation in every service (refactor to gateway)",
+    "Tight coupling between auth-service and gateway"
+  ]
 }
 ```
 
