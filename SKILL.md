@@ -1044,7 +1044,7 @@ Risk Report (Generated Markdown)
 
 **Field Context:**
 - `change_description`: User-provided requirement or change description
-- `change_type`: Categorized as "api", "data", "behavior", "dependency", or "other"
+- `change_type`: Analyzer-derived categorization from change_description ("api", "data", "behavior", "dependency", or "other")
 - `files_selected`, `dependency_graph`: From Phase 2 output
 - `repo_root`: User-provided (same as Phases 1-2)
 - `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
@@ -1164,6 +1164,8 @@ Risk Report (Generated Markdown)
 }
 ```
 
+**Severity Levels:** Phase 4 severity values (`critical`, `high`, `medium`, `low`) directly map to Risk Assessment Categories section below. These standardized severity levels enable consistent risk communication across all phases.
+
 **Error Handling:**
 - If no breaking changes detected: Return empty array (success)
 - If timeout: Return breaking changes found so far
@@ -1214,7 +1216,7 @@ Risk Report (Generated Markdown)
   "preflight_checklist": {
     "code_review": {
       "item": "Code reviewed by [name]",
-      "status": "pending",
+      "status": "pending",  // Valid values: pending, completed, failed, blocked, skipped
       "why": "Large API change affecting 15 files"
     },
     "test_coverage": {
@@ -1259,7 +1261,7 @@ Risk Report (Generated Markdown)
 
 **Sub-skill:** `/code-surgeon-safety-verifier` (new in Review mode)
 
-**Purpose:** Final safety verification - assess data loss risk, verify reversibility, check error handling coverage, validate test coverage, and provide final recommendation.
+**Purpose:** Final safety verdict - synthesize breaking changes, impact analysis, and pre-flight validation into a go/no-go decision with explicit risk level and recommendation.
 
 **Input Contract:**
 ```json
@@ -1288,19 +1290,15 @@ Risk Report (Generated Markdown)
 **Output Contract (Success):**
 ```json
 {
-  "safety_verification": {
-    "data_loss_risk": "low",
-    "reversibility": "yes - can revert to old signature with deprecation",
-    "error_handling": "complete",
-    "test_coverage": {
-      "changed_lines": 45,
-      "covered_lines": 43,
-      "coverage_percentage": 95.6
-    },
-    "recommendation": "Safe to merge with pre-flight checklist completed"
-  },
   "risk_level": "high",
-  "final_verdict": "PROCEED WITH CAUTION - 1 critical breaking change, requires coordinated migration"
+  "final_verdict": "PROCEED_WITH_CAUTION",  // Valid values: PROCEED, BLOCKED, PROCEED_WITH_CAUTION, REQUIRE_STAKEHOLDER_REVIEW
+  "verdict_summary": "1 critical breaking change detected. Safe to proceed IF all pre-flight checklist items completed and coordinated migration executed.",
+  "decision_factors": [
+    "breaking_changes: 1 critical (function rename)",
+    "impact_scope: 15 files, 3 modules",
+    "preflight_status: 6/6 items required",
+    "reversibility: yes - can deprecate old signature"
+  ]
 }
 ```
 
@@ -1586,6 +1584,8 @@ Review mode categorizes risks into severity levels:
 
 These 4 scenarios verify review mode works across common use cases:
 
+**Why 4 scenarios (not 5)?** Review mode focuses on 4 core change types (dependency, API, refactoring, schema) vs Discovery's 5 architectural patterns. Review mode is change-centric (assessment-focused), while Discovery mode is system-centric (architecture-focused). The 4 scenarios cover all major breaking change vectors.
+
 #### Scenario 1: Dependency Upgrade
 
 **User Request:** "Is it safe to upgrade React from 17 to 18?"
@@ -1680,9 +1680,9 @@ These 4 scenarios verify review mode works across common use cases:
 **Expected Flow:**
 1. Phase 1: Detect backend framework + database type
 2. Phase 2: Find all code writing to users table (models, migrations, API)
-3. Phase 3: Identify scope (3 modules affected, 12 files touched)
+3. Phase 3: Identify scope (3 modules affected, 12 files touched, 5 affected tests)
 4. Phase 4: Detect breaking changes (NOT NULL without default, migration needed)
-5. Phase 5: Create migration checklist (add default, handle existing rows, test)
+5. Phase 5: Create migration checklist (add default, handle existing rows, test affected code paths)
 6. Phase 6: Verify safety (high risk without proper migration steps)
 
 **Output:**
