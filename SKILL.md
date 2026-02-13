@@ -870,6 +870,948 @@ A successful discovery analysis meets ALL of these:
 
 ---
 
+## Review Mode Orchestration
+
+Review mode performs deep safety assessment of proposed changes to generate a **Risk Report** with breaking change detection and pre-flight validation. This section details the exact 6-phase orchestration workflow.
+
+### Executive Summary
+
+**Duration:** 16 minutes (STANDARD) | **Token Budget:** 60K | **Accuracy:** 95%
+
+Review mode routes through 6 core sub-skills in strict sequence to assess change impact, detect breaking changes, and validate safety:
+
+```
+Framework Detection (2 min)
+    ↓
+Context Research (5 min)
+    ↓
+Impact Analysis (3 min)
+    ↓
+Breaking Change Detection (3 min)
+    ↓
+Pre-Flight Validation (2 min)
+    ↓
+Safety Verification (1 min)
+    ↓
+Risk Report (Generated Markdown)
+```
+
+### Phase 1: Framework Detection (2 minutes)
+
+**Sub-skill:** `/code-surgeon-framework-detector`
+
+**Purpose:** Detect tech stack, programming languages, frameworks, versions, and monorepo structure (identical to Discovery Phase 1).
+
+**Input Contract:**
+```json
+{
+  "repo_root": "/absolute/path/to/repo",
+  "timeout_ms": 120000
+}
+```
+
+**Field Context:**
+- `repo_root`: User-provided (absolute path to repository)
+- `timeout_ms`: Global default (2 minutes for Phase 1)
+
+**Output Contract (Success):**
+```json
+{
+  "primary_language": "typescript",
+  "primary_framework": "React",
+  "frameworks": [
+    {
+      "name": "React",
+      "version": "18.2.0",
+      "language": "typescript",
+      "category": "frontend"
+    }
+  ],
+  "languages": [
+    {"language": "typescript", "file_count": 145, "percentage": 85}
+  ],
+  "is_monorepo": false,
+  "has_typescript": true,
+  "has_testing": true,
+  "has_documentation": true,
+  "confidence": 0.96
+}
+```
+
+**Error Handling:**
+- If repo not found: Stop immediately, return "Repository not found"
+- If unreadable: Stop immediately, return "Repository access denied"
+- If timeout: Return partial results with low confidence flag
+
+**Token Cost:** ~1K tokens
+
+---
+
+### Phase 2: Context Research (5 minutes)
+
+**Sub-skill:** `/code-surgeon-context-researcher`
+
+**Purpose:** Analyze codebase structure, build dependency graph, identify structural patterns, and find team conventions.
+
+**Input Contract:**
+```json
+{
+  "issue_type": "refactor",
+  "requirements": ["Assess impact of proposed change"],
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Field Context:**
+- `primary_language`, `frameworks`: From Phase 1 output (previous phase)
+- `repo_root`: User-provided (same as Phase 1)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (5 minutes for Phase 2)
+
+**Output Contract (Success):**
+```json
+{
+  "files_selected": [
+    {
+      "path": "src/auth.ts",
+      "tier": 1,
+      "size_bytes": 2400,
+      "relevance": "critical",
+      "reason": "Core authentication module, likely affected by change"
+    }
+  ],
+  "file_count": {
+    "tier_1": 8,
+    "tier_2": 25,
+    "tier_3": 12,
+    "total": 45
+  },
+  "dependency_graph": {
+    "src/auth.ts": {
+      "imports": ["src/utils.ts"],
+      "imported_by": ["src/api.ts", "src/middleware/auth.ts"],
+      "impact": "critical"
+    }
+  },
+  "structural_patterns": [
+    {
+      "name": "Custom Hook Pattern",
+      "example_file": "src/hooks/useAuth.ts",
+      "description": "Custom hooks for state management",
+      "location": "src/hooks/**/*.ts"
+    }
+  ],
+  "team_conventions": [
+    "camelCase for functions, PascalCase for components",
+    "Always use try-catch in async functions"
+  ]
+}
+```
+
+**Error Handling:**
+- If timeout: Return partial files found (Tier 1 only), mark as incomplete
+- If token budget exceeded: Remove Tier 3 patterns, retry with Tier 1-2 only
+- If no files found: Stop, return "Repository structure unreadable"
+
+**Token Cost:** 30K-90K tokens (varies by depth mode)
+
+---
+
+### Phase 3: Impact Analysis (3 minutes)
+
+**Sub-skill:** `/code-surgeon-impact-analyzer` (new in Review mode)
+
+**Purpose:** Analyze proposed change, map affected files, assess scope of impact (direct and transitive dependents), identify affected tests, and build impact summary.
+
+**Input Contract:**
+```json
+{
+  "change_description": "Rename authenticate() function to validateCredentials()",
+  "change_type": "api",
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "files_selected": [...],  // from Phase 2
+  "dependency_graph": {...},  // from Phase 2
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 180
+}
+```
+
+**Field Context:**
+- `change_description`: User-provided requirement or change description
+- `change_type`: Categorized as "api", "data", "behavior", "dependency", or "other"
+- `files_selected`, `dependency_graph`: From Phase 2 output
+- `repo_root`: User-provided (same as Phases 1-2)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "scope": {
+    "files_affected": 15,
+    "modules_affected": 3,
+    "layers_affected": ["api", "service", "middleware"]
+  },
+  "impact_analysis": {
+    "direct_dependents": [
+      {
+        "file": "src/api/auth.ts",
+        "type": "import",
+        "impact": "Uses renamed function - needs update"
+      }
+    ],
+    "transitive_dependents": [
+      {
+        "file": "src/components/Login.tsx",
+        "depth": 2,
+        "impact": "Indirect: uses module that imports change"
+      }
+    ],
+    "external_users": [
+      {
+        "type": "npm_package",
+        "name": "@myorg/auth-utils",
+        "version": "2.1.0",
+        "impact": "Breaking for v2.1.0"
+      }
+    ]
+  },
+  "affected_tests": {
+    "unit_tests": 12,
+    "integration_tests": 3,
+    "e2e_tests": 1
+  }
+}
+```
+
+**Error Handling:**
+- If change description unclear: Request clarification
+- If no affected files found: Return low-impact assessment
+- If timeout: Return partial impact analysis with files found
+
+**Token Cost:** ~3K-6K tokens
+
+---
+
+### Phase 4: Breaking Change Detection (3 minutes)
+
+**Sub-skill:** `/code-surgeon-breaking-change-detector` (new in Review mode)
+
+**Purpose:** Detect and categorize breaking changes (API changes, data changes, behavior changes, dependency changes), assess severity, identify migration paths, and provide effort estimates.
+
+**Input Contract:**
+```json
+{
+  "change_description": "Rename authenticate() function to validateCredentials()",
+  "change_type": "api",
+  "files_affected": ["src/auth.ts"],
+  "impact_analysis": {...},  // from Phase 3
+  "dependency_graph": {...},  // from Phase 2
+  "primary_language": "typescript",
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 180
+}
+```
+
+**Field Context:**
+- `change_description`: From user input
+- `files_affected`: From Phase 3 impact analysis
+- `dependency_graph`: From Phase 2 output
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "breaking_changes": [
+    {
+      "type": "api",
+      "severity": "critical",
+      "title": "Function signature changed",
+      "location": "src/auth.ts:45",
+      "old_signature": "authenticate(username: string, password: string) -> Promise<User>",
+      "new_signature": "validateCredentials(credentials: LoginCredentials) -> Promise<AuthToken>",
+      "impact": "All callers must update to new signature",
+      "affected_locations": [
+        "src/api/auth.ts:20",
+        "src/hooks/useAuth.ts:15",
+        "tests/auth.test.ts:30"
+      ],
+      "migration_path": "Update all calls from authenticate(username, password) to validateCredentials({username, password})",
+      "effort_estimate": "30 minutes"
+    },
+    {
+      "type": "data",
+      "severity": "high",
+      "title": "Database schema migration required",
+      "location": "src/db/schema.sql",
+      "change": "Added required column 'mfa_enabled' to users table",
+      "impact": "Existing users must have default value or explicit update",
+      "affected_locations": ["src/db/migrations/", "src/models/User.ts"],
+      "migration_path": "Run migration: ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT false;",
+      "effort_estimate": "5 minutes"
+    }
+  ],
+  "breaking_change_count": 2,
+  "critical_count": 1,
+  "high_count": 1,
+  "medium_count": 0
+}
+```
+
+**Error Handling:**
+- If no breaking changes detected: Return empty array (success)
+- If timeout: Return breaking changes found so far
+- If uncertain: Mark with low confidence
+
+**Token Cost:** ~3K-6K tokens
+
+---
+
+### Phase 5: Pre-Flight Validation (2 minutes)
+
+**Sub-skill:** `/code-surgeon-preflight-validator` (new in Review mode)
+
+**Purpose:** Validate change completeness, assess migration path, create pre-flight checklist with action items and validation steps.
+
+**Input Contract:**
+```json
+{
+  "change_description": "Rename authenticate() function to validateCredentials()",
+  "breaking_changes": [...],  // from Phase 4
+  "impact_analysis": {...},  // from Phase 3
+  "files_affected": 15,
+  "affected_tests": {
+    "unit_tests": 12,
+    "integration_tests": 3,
+    "e2e_tests": 1
+  },
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 120
+}
+```
+
+**Field Context:**
+- `breaking_changes`: From Phase 4 output
+- `impact_analysis`: From Phase 3 output
+- `files_affected`: Count from Phase 3
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "validation": {
+    "completeness": "high",
+    "risks_identified": true,
+    "migration_path_clear": true
+  },
+  "preflight_checklist": {
+    "code_review": {
+      "item": "Code reviewed by [name]",
+      "status": "pending",
+      "why": "Large API change affecting 15 files"
+    },
+    "test_coverage": {
+      "item": "Run full test suite",
+      "status": "pending",
+      "why": "16 tests affected by this change"
+    },
+    "backward_compatibility": {
+      "item": "Check backward compatibility",
+      "status": "pending",
+      "why": "1 critical breaking change detected"
+    },
+    "documentation": {
+      "item": "Update API documentation",
+      "status": "pending",
+      "why": "Function signature changed"
+    },
+    "downstream": {
+      "item": "Notify npm package users",
+      "status": "pending",
+      "why": "External package depends on this API"
+    },
+    "staging": {
+      "item": "Test in staging environment",
+      "status": "pending",
+      "why": "Large change requires validation in realistic environment"
+    }
+  }
+}
+```
+
+**Error Handling:**
+- If no validation needed: Return minimal checklist
+- If timeout: Return checklist items found so far
+- If uncertain: Mark items as "recommended"
+
+**Token Cost:** ~2K-4K tokens
+
+---
+
+### Phase 6: Safety Verification (1 minute)
+
+**Sub-skill:** `/code-surgeon-safety-verifier` (new in Review mode)
+
+**Purpose:** Final safety verification - assess data loss risk, verify reversibility, check error handling coverage, validate test coverage, and provide final recommendation.
+
+**Input Contract:**
+```json
+{
+  "change_description": "Rename authenticate() function to validateCredentials()",
+  "breaking_changes": [...],  // from Phase 4
+  "affected_tests": {
+    "unit_tests": 12,
+    "integration_tests": 3,
+    "e2e_tests": 1
+  },
+  "files_affected": 15,
+  "preflight_checklist": {...},  // from Phase 5
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 60
+}
+```
+
+**Field Context:**
+- `breaking_changes`: From Phase 4 output
+- `affected_tests`: From Phase 3 output
+- `preflight_checklist`: From Phase 5 output
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+
+**Output Contract (Success):**
+```json
+{
+  "safety_verification": {
+    "data_loss_risk": "low",
+    "reversibility": "yes - can revert to old signature with deprecation",
+    "error_handling": "complete",
+    "test_coverage": {
+      "changed_lines": 45,
+      "covered_lines": 43,
+      "coverage_percentage": 95.6
+    },
+    "recommendation": "Safe to merge with pre-flight checklist completed"
+  },
+  "risk_level": "high",
+  "final_verdict": "PROCEED WITH CAUTION - 1 critical breaking change, requires coordinated migration"
+}
+```
+
+**Error Handling:**
+- If blocking risk found: Mark as BLOCKED
+- If incomplete data: Return partial verification
+- If timeout: Return verification completed so far
+
+**Token Cost:** ~1K-2K tokens
+
+---
+
+### Review Mode Sub-Skill Routing Table
+
+| Phase | Sub-Skill | Input Source | Output Used By | Token Budget | Duration |
+|-------|-----------|--------------|----------------|--------------|----------|
+| 1 | framework-detector | User repo_root | Phases 2-6 | ~1K | 2 min |
+| 2 | context-researcher | Phase 1 + user repo | Phases 3-6 | ~30-60K | 5 min |
+| 3 | impact-analyzer | Phases 1-2 + change description | Phases 4-6, Report | ~3-6K | 3 min |
+| 4 | breaking-change-detector | Phases 1-3 + change | Phases 5-6, Report | ~3-6K | 3 min |
+| 5 | preflight-validator | Phases 3-4 | Phase 6, Report | ~2-4K | 2 min |
+| 6 | safety-verifier | Phases 3-5 | Report | ~1-2K | 1 min |
+
+---
+
+### Token Budgeting by Depth Mode
+
+**QUICK Mode (5 min, ~30K tokens, 85% accuracy)**
+- Phase 1: 1K (framework detection)
+- Phase 2: 14K (Tier 1 + Tier 2, no Tier 3)
+- Phase 3: 2K (direct impact only, no transitive)
+- Phase 4: 2K (major breaking changes only)
+- Phase 5: 2K (basic checklist)
+- Phase 6: 1K (final verdict only)
+- Output: Markdown (risk report)
+- Reserve: 6K for formatting
+- **Total: 30K**
+
+**STANDARD Mode (15 min, ~60K tokens, 95% accuracy) ← DEFAULT**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 35K (Tier 1 + Tier 2 + partial Tier 3)
+- Phase 3: 5K (direct + transitive impact analysis)
+- Phase 4: 5K (all breaking changes with migration paths)
+- Phase 5: 4K (comprehensive pre-flight checklist)
+- Phase 6: 2K (complete safety verification)
+- Output: Markdown + JSON
+- Reserve: 8K for formatting
+- **Total: 60K**
+
+**DEEP Mode (30 min, ~90K tokens, 99% accuracy)**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 58K (all Tier 1 + Tier 2 + Tier 3)
+- Phase 3: 8K (detailed impact analysis with visualizations)
+- Phase 4: 8K (all breaking changes + alternatives + rollback procedures)
+- Phase 5: 6K (detailed pre-flight with step-by-step validation)
+- Phase 6: 3K (complete safety verification + security impact)
+- Output: Markdown + JSON + Interactive
+- Reserve: 6K for formatting
+- **Total: 90K**
+
+---
+
+### Depth Mode Behavior Details
+
+**QUICK Mode (Review)**
+- Analyzes only direct dependents (no transitive)
+- Only critical and high severity breaking changes
+- Basic pre-flight checklist (4-6 items)
+- Final verdict only (no detailed verification)
+- Output: Markdown risk report summary
+
+**STANDARD Mode (Review) - DEFAULT**
+- Complete impact analysis (direct + transitive)
+- All breaking changes by severity (critical, high, medium)
+- Full pre-flight checklist (8-12 items)
+- Complete safety verification with recommendations
+- Output: Markdown + JSON structured data
+
+**DEEP Mode (Review)**
+- Exhaustive impact analysis with visualizations
+- All breaking changes + alternative approaches + rollback procedures
+- Detailed pre-flight with step-by-step validation and effort estimates
+- Safety verification + security impact + cost estimation
+- Performance impact analysis
+- Output: Markdown report + JSON data + Interactive navigator
+
+---
+
+### Error Handling for Review Mode
+
+**Sub-Skill Invocation Failure**
+```
+Phase [N] failed to complete.
+├─ First attempt: Retry once (wait 5 seconds)
+├─ If still fails:
+│  ├─ Save state.json immediately
+│  ├─ Show: "Phase [N] failed. Session saved."
+│  ├─ Show session ID: surgeon-20250213-abc123xyz
+│  ├─ Suggest: "/code-surgeon-resume surgeon-20250213-abc123xyz"
+│  └─ Stop execution
+└─ Rationale: Prevents loss of work, allows resume from checkpoint
+```
+
+**Token Budget Exceeded**
+```
+Approaching 85% of budget (51K/60K):
+├─ Log warning
+├─ Continue with existing impact analysis
+└─ Rationale: Safety threshold to prevent mid-phase overrun
+
+Exceed 100% of budget (>60K):
+├─ Stop loading new files
+├─ Analyze what was loaded
+├─ Save state.json
+├─ Show: "Exceeded token budget for STANDARD mode"
+├─ Offer: (a) Generate report with loaded data, (b) Switch to QUICK mode and retry
+└─ Rationale: Prevents silent token overflow
+```
+
+**Repository Issues**
+```
+Repository not found:
+├─ Show error immediately in Phase 1
+├─ Stop execution
+└─ Suggest: "Check repo path and retry"
+
+Analysis timeout in Phase N:
+├─ Return partial results from completed phases
+├─ Mark incomplete status
+├─ Suggest: Switch to QUICK mode for faster analysis
+└─ Offer: Save and retry later
+```
+
+---
+
+### Risk Assessment Categories
+
+Review mode categorizes risks into severity levels:
+
+#### Critical Risks (STOP AND REVIEW)
+
+**Characteristics:** Data loss, security exposure, system outage, breaking changes with no clear migration path
+
+**Concrete Examples:**
+
+1. **Data Loss Risk**
+   ```typescript
+   // CRITICAL: ALTER TABLE removes column permanently
+   ALTER TABLE users DROP COLUMN email_verified;
+   // Migration path: None - data permanently lost
+   ```
+
+2. **Security Exposure**
+   ```typescript
+   // CRITICAL: Removing authentication check
+   - app.get('/api/admin/users', authenticateUser, listAllUsers);
+   + app.get('/api/admin/users', listAllUsers);  // Missing auth!
+   // Migration path: BLOCKED - security vulnerability
+   ```
+
+3. **API Breaking Change (No Deprecation)**
+   ```typescript
+   // CRITICAL: Renamed export without backward compatibility
+   - export function validatePassword(pwd: string): boolean
+   + export function checkPassword(pwd: string): boolean
+   // Migration path: All 12 callers must update simultaneously
+   ```
+
+**Action:** Do not proceed without explicit risk mitigation and stakeholder review.
+
+---
+
+#### High Risks (CAREFUL REVIEW)
+
+**Characteristics:** Breaking changes with clear migration path, third-party impacts, non-trivial refactoring
+
+**Concrete Examples:**
+
+1. **Breaking API Change**
+   ```typescript
+   // HIGH: Function signature changed, but migration is straightforward
+   - export function authenticate(username: string, password: string)
+   + export function authenticate(credentials: {username: string; password: string})
+   // Migration path: Update all 8 callers from authenticate(u, p) to authenticate({username: u, password: p})
+   // Effort: 20 minutes
+   ```
+
+2. **Type Change in Return Value**
+   ```typescript
+   // HIGH: Return type changed from object to array
+   - function getUsers(): User { ... }
+   + function getUsers(): User[] { ... }
+   // Migration path: Update callers expecting single User object
+   // External dependency: @myorg/api-sdk depends on this
+   ```
+
+3. **Major Version Bump**
+   ```json
+   // HIGH: Upgrading dependency with major breaking changes
+   {
+     "react": "17.0.0" → "18.0.0"
+   }
+   // Migration path: Update Hook usage, Concurrent features
+   // Effort: 3-5 hours for large codebase
+   ```
+
+**Action:** Document breaking changes and provide migration guide before merging.
+
+---
+
+#### Medium Risks (NOTED)
+
+**Characteristics:** Moderate impact changes, internal refactoring with external touch points
+
+**Concrete Examples:**
+
+1. **Module Move with Import Path Changes**
+   ```typescript
+   // MEDIUM: Moving utility affects import paths
+   - import { formatDate } from './utils/formatDate';
+   + import { formatDate } from './shared/date/formatDate';
+   // Migration path: Update 5 import statements
+   // Impact: Internal, but test files need updates
+   ```
+
+2. **State Structure Refactoring**
+   ```typescript
+   // MEDIUM: Internal state restructured
+   - return {user: {id, name, email}}
+   + return {userId: id, userName: name, userEmail: email}
+   // Migration path: Update 3 components consuming this state
+   // Impact: Internal but breaks consumer code
+   ```
+
+3. **Error Message Changes**
+   ```typescript
+   // MEDIUM: Error handling modified
+   - throw new Error('Invalid user');
+   + throw new ValidationError('User data invalid', {field: 'user'});
+   // Migration path: Update error handlers
+   // Impact: Logging systems depend on error messages
+   ```
+
+**Action:** Document changes and notify affected teams.
+
+---
+
+#### Low Risks (PROCEED)
+
+**Characteristics:** Internal changes, optimizations, documentation updates, no breaking changes
+
+**Concrete Examples:**
+
+1. **Internal Variable Rename**
+   ```typescript
+   // LOW: Only internal, no public API change
+   - let userData = fetchUser();
+   + let userInfo = fetchUser();
+   // No breaking changes, internal only
+   ```
+
+2. **Performance Optimization**
+   ```typescript
+   // LOW: Improves performance without interface change
+   - function processItems(items) { return items.map(...); }
+   + function processItems(items) { return items.reduce(...); }  // Faster
+   // No breaking changes, same interface
+   ```
+
+3. **Documentation Update**
+   ```typescript
+   // LOW: Only updates comments/docs
+   - // Get user by id
+   + // Fetch user profile by ID, returns cached result if available
+   // No code changes, no breaking changes
+   ```
+
+**Action:** Proceed normally, document in commit message.
+
+---
+
+### Test Scenarios
+
+These 4 scenarios verify review mode works across common use cases:
+
+#### Scenario 1: Dependency Upgrade
+
+**User Request:** "Is it safe to upgrade React from 17 to 18?"
+
+**Command:** `/code-surgeon "Upgrade React 17 to 18" --mode=review --depth=STANDARD`
+
+**Expected Flow:**
+1. Phase 1: Detect React 17.x + Node.js
+2. Phase 2: Load relevant files (src/components/, src/hooks/, src/App.tsx)
+3. Phase 3: Identify affected files using React (hooks, components, Root API)
+4. Phase 4: Detect breaking changes (legacy Root API removed, Hook rules)
+5. Phase 5: Create migration checklist (update Hook deps, test concurrent features)
+6. Phase 6: Verify safety (high risk but manageable with clear migration path)
+
+**Output:**
+- Breaking changes identified (legacy Root API, Hook usage patterns)
+- Migration guide per file
+- Pre-flight checklist with validation steps
+- Risk assessment: HIGH but manageable
+
+**Success Criteria:**
+- All breaking changes identified
+- Migration path clear for each file type
+- Effort estimate provided
+- Go/no-go recommendation explicit
+
+---
+
+#### Scenario 2: API Refactoring
+
+**User Request:** "Rename /auth endpoint to /authentication. Will this break anything?"
+
+**Command:** `/code-surgeon "/auth → /authentication refactor" --mode=review --depth=STANDARD`
+
+**Expected Flow:**
+1. Phase 1: Detect Node.js + Express
+2. Phase 2: Find all references to /auth endpoint
+3. Phase 3: Identify 3 internal API callers + 1 external SDK dependency
+4. Phase 4: Detect breaking change (endpoint path change, 4 callers affected)
+5. Phase 5: Create migration checklist (update clients, notify SDK users)
+6. Phase 6: Verify safety (critical: external dependency affected)
+
+**Output:**
+- All 4 callers identified with exact locations
+- External package impact flagged (users need notice)
+- Migration plan (update routes + notify SDK users)
+- Effort: 2 hours (refactoring + testing + notifications)
+
+**Success Criteria:**
+- External users identified and flagged
+- Clear blocking point: external SDK notification needed
+- Migration effort estimated
+- Recommendation: Safe IF external users notified
+
+---
+
+#### Scenario 3: Pre-Merge Review
+
+**User Request:** "Is this refactoring safe to merge?" (large PR)
+
+**Command:** `/code-surgeon "Large refactoring PR" --mode=review --depth=DEEP`
+
+**Expected Flow:**
+1. Phase 1: Detect framework + languages
+2. Phase 2: Load all affected files from PR
+3. Phase 3: Map complete change impact (15 files, 3 modules)
+4. Phase 4: Detect all breaking changes with migration paths
+5. Phase 5: Generate detailed pre-flight checklist (tests, reviews, staging)
+6. Phase 6: Final safety verdict with conditions
+
+**Output:**
+- Detailed impact map showing file-by-file changes
+- All breaking changes documented with alternatives
+- Step-by-step pre-flight checklist
+- Detailed safety verification report
+- Go/no-go with specific conditions
+
+**Success Criteria:**
+- Every changed file assessed for impact
+- All breaking changes have migration paths
+- Pre-flight checklist complete and actionable
+- Clear go/no-go verdict with conditions
+
+---
+
+#### Scenario 4: Schema Migration
+
+**User Request:** "I'm adding a NOT NULL column to users table. What needs to change?"
+
+**Command:** `/code-surgeon "Add NOT NULL column mfa_enabled to users table" --mode=review --depth=STANDARD`
+
+**Expected Flow:**
+1. Phase 1: Detect backend framework + database type
+2. Phase 2: Find all code writing to users table (models, migrations, API)
+3. Phase 3: Identify scope (3 modules affected, 12 files touched)
+4. Phase 4: Detect breaking changes (NOT NULL without default, migration needed)
+5. Phase 5: Create migration checklist (add default, handle existing rows, test)
+6. Phase 6: Verify safety (high risk without proper migration steps)
+
+**Output:**
+- All code paths writing to users table identified
+- Breaking change: NOT NULL constraint without default
+- Migration strategy: Add default value first, then constraint
+- Pre-flight: Coordinate with deployment, test rollback
+- Reversibility: Yes, can roll back with procedure
+
+**Success Criteria:**
+- All writers to table identified
+- Migration strategy clear and reversible
+- Rollback procedure documented
+- Deployment coordination requirements explicit
+
+---
+
+### Integration with Hub-and-Spoke Model
+
+**Review Mode in Hub-and-Spoke:**
+
+Review mode follows a **strictly sequential pipeline** with each phase depending on prior phase outputs.
+
+```
+          User Input
+     "requirement"
+      --mode=review
+            ↓
+    ┌─────────────────────┐
+    │  Task Classifier    │
+    │  (→ Review mode)    │
+    └──────────┬──────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 1: Framework Detection       │
+    │  (Detects tech stack, languages)    │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 2: Context Research          │
+    │  (Analyzes files, dependencies)     │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 3: Impact Analysis           │
+    │  (Maps change impact)               │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 4: Breaking Change Detection │
+    │  (Identifies breaking changes)      │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 5: Pre-Flight Validation     │
+    │  (Creates validation checklist)     │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 6: Safety Verification       │
+    │  (Final safety assessment)          │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │    Risk Report Generator            │
+    │  (Markdown + JSON + Interactive)    │
+    └──────────┬──────────────────────────┘
+               ↓
+    Risk Report Output (varies by depth)
+```
+
+**Sequential Guarantee:** Each phase completes before the next begins. Enables resumption from any checkpoint and predictable token budgeting.
+
+---
+
+### Continuity: Phase Entry/Exit Contracts
+
+Each phase passes data to the next in strict format.
+
+| From Phase | Data Passed | To Phase | Used For |
+|------------|------------|----------|----------|
+| 1 (Framework) | `primary_language`, `frameworks[]`, `is_monorepo` | 2-6 | Context, impact matching, safety assessment |
+| 2 (Context) | `files_selected[]`, `dependency_graph`, `structural_patterns[]` | 3-6 | Impact analysis, change scope, breaking change detection |
+| 3 (Impact) | `scope`, `impact_analysis[]`, `affected_tests` | 4-6, Report | Breaking change context, checklist generation |
+| 4 (Breaking Changes) | `breaking_changes[]`, `severity_counts` | 5-6, Report | Checklist items, safety verification |
+| 5 (Pre-Flight) | `preflight_checklist[]`, `validation_status` | 6, Report | Final verification, recommendation basis |
+| 6 (Safety) | `safety_verification`, `final_verdict`, `risk_level` | Report | Risk report summary, go/no-go decision |
+
+---
+
+### Session Management for Review
+
+**State File Location:**
+```
+.claude/planning/sessions/<session-id>/
+├─ state.json              ← Complete session state (all phases)
+├─ RISK_REPORT.md          ← Human-readable risk report
+├─ risk_report.json        ← Machine-readable data
+├─ interactive.json        ← CLI navigation data
+└─ logs/
+   └─ review.log           ← Phase-by-phase execution log
+```
+
+**Resumption Logic:**
+- If Phase 2 times out: Save state after Phase 1, resume at Phase 2
+- If Phase 4 fails: Retry once, then save and resume
+- If token budget exceeded: Mark where overflow occurred, resume with QUICK mode
+
+---
+
+### Review Mode Success Criteria
+
+A successful review analysis meets ALL of these:
+
+- [ ] 6-phase workflow completed without critical errors
+- [ ] All 6 sub-skills invoked with valid input/output contracts
+- [ ] Token budget not exceeded (with <10% safety margin)
+- [ ] Risk report generated in required format(s)
+- [ ] All breaking changes identified with severity levels
+- [ ] Impact scope clearly documented (files, modules, layers)
+- [ ] Pre-flight checklist created with 6-12 actionable items
+- [ ] Safety verification complete with final verdict
+- [ ] No hallucinated files or changes
+- [ ] Session resumable if interrupted
+- [ ] Depth mode behavior correct (QUICK < STANDARD < DEEP)
+- [ ] Go/no-go decision explicit and justified
+
+---
+
 ## Hub-and-Spoke Architecture with Mode-Specific Routing
 
 ```
@@ -938,6 +1880,25 @@ Phase 5: Tech Stack Analysis (Built-in)
 Phase 6: Risk Analyzer (Discovery-Specific)
          ↓
     Audit Report
+    (Markdown, JSON, or Interactive)
+```
+
+**Review Mode Sub-Skill Flow:**
+
+```
+Phase 1: Framework Detection
+         ↓
+Phase 2: Context Research
+         ↓
+Phase 3: Impact Analyzer (Review-Specific)
+         ↓
+Phase 4: Breaking Change Detector (Review-Specific)
+         ↓
+Phase 5: Pre-Flight Validator (Review-Specific)
+         ↓
+Phase 6: Safety Verifier (Review-Specific)
+         ↓
+    Risk Report
     (Markdown, JSON, or Interactive)
 ```
 
