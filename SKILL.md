@@ -90,6 +90,10 @@ Audit Report (Generated Markdown)
 }
 ```
 
+**Field Context:**
+- `repo_root`: User-provided (absolute path to repository)
+- `timeout_ms`: Global default (2 minutes for Phase 1)
+
 **Output Contract (Success):**
 ```json
 {
@@ -134,7 +138,9 @@ Audit Report (Generated Markdown)
 
 **Sub-skill:** `/code-surgeon-context-researcher`
 
-**Purpose:** Analyze codebase structure, build dependency graph, extract patterns, find team conventions.
+**Purpose:** Analyze codebase structure, build dependency graph, identify structural patterns, find team conventions.
+
+**Note:** This phase identifies **structural patterns** (code organization, naming conventions, folder structure patterns). Deep architectural and design patterns are identified in Phase 4.
 
 **Input Contract:**
 ```json
@@ -148,6 +154,12 @@ Audit Report (Generated Markdown)
   "timeout_seconds": 300
 }
 ```
+
+**Field Context:**
+- `primary_language`, `frameworks`: From Phase 1 output (previous phase)
+- `repo_root`: User-provided (same as Phase 1)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (5 minutes for Phase 2)
 
 **Output Contract (Success):**
 ```json
@@ -174,11 +186,11 @@ Audit Report (Generated Markdown)
       "impact": "critical"
     }
   },
-  "patterns_found": [
+  "structural_patterns": [
     {
       "name": "Custom Hook Pattern",
       "example_file": "src/hooks/useAuth.ts",
-      "description": "React custom hooks for state management",
+      "description": "Custom hooks located in src/hooks/ directory for state management",
       "location": "src/hooks/**/*.ts"
     }
   ],
@@ -200,7 +212,7 @@ Audit Report (Generated Markdown)
 
 ### Phase 3: Architecture Detection (3 minutes)
 
-**Sub-skill:** `/code-surgeon-architecture-analyzer`
+**Sub-skill:** `/code-surgeon-architecture-detector`
 
 **Purpose:** Map system architecture, detect architectural style (monolithic/microservices), identify modules, data flow, and boundaries.
 
@@ -211,11 +223,19 @@ Audit Report (Generated Markdown)
   "frameworks": [...],  // from Phase 1
   "files_selected": [...],  // from Phase 2
   "dependency_graph": {...},  // from Phase 2
+  "structural_patterns": [...],  // from Phase 2 (preliminary patterns)
   "repo_root": "/absolute/path/to/repo",
   "depth_mode": "standard",
   "timeout_seconds": 300
 }
 ```
+
+**Field Context:**
+- `primary_language`, `frameworks`: From Phase 1 output
+- `files_selected`, `dependency_graph`, `structural_patterns`: From Phase 2 output
+- `repo_root`: User-provided (same as Phases 1-2)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (3 minutes for Phase 3)
 
 **Output Contract (Success):**
 ```json
@@ -260,7 +280,9 @@ Audit Report (Generated Markdown)
 
 **Sub-skill:** `/code-surgeon-pattern-identifier`
 
-**Purpose:** Extract design patterns (Singleton, Factory, Observer), architectural patterns (MVC, layering), framework-specific patterns (React hooks, Django models), and implementation patterns (error handling, testing, configuration).
+**Purpose:** Extract **deep** architectural and design patterns (Singleton, Factory, Observer, MVC, layering), framework-specific patterns (React hooks, Django models), and implementation patterns (error handling, testing, configuration). Receives structural patterns from Phase 2 and builds on them.
+
+**Note:** This phase performs **deep pattern analysis** (design patterns, architectural patterns, framework conventions). It receives `structural_patterns` from Phase 2 and extracts more sophisticated patterns.
 
 **Input Contract:**
 ```json
@@ -269,12 +291,22 @@ Audit Report (Generated Markdown)
   "primary_framework": "React",
   "files_selected": [...],  // from Phase 2
   "dependency_graph": {...},  // from Phase 2
+  "structural_patterns": [...],  // from Phase 2 (preliminary patterns)
   "architecture_type": "Layered MVC",  // from Phase 3
+  "modules": [...],  // from Phase 3
   "repo_root": "/absolute/path/to/repo",
   "depth_mode": "standard",
   "timeout_seconds": 300
 }
 ```
+
+**Field Context:**
+- `primary_language`, `primary_framework`: From Phase 1 output
+- `files_selected`, `dependency_graph`, `structural_patterns`: From Phase 2 output
+- `architecture_type`, `modules`: From Phase 3 output
+- `repo_root`: User-provided (same as Phases 1-3)
+- `depth_mode`: Global configuration (QUICK/STANDARD/DEEP)
+- `timeout_seconds`: Global default (3 minutes for Phase 4)
 
 **Output Contract (Success):**
 ```json
@@ -448,33 +480,36 @@ Audit Report (Generated Markdown)
 
 **QUICK Mode (5 min, ~30K tokens, 85% accuracy)**
 - Phase 1: 1K (framework detection)
-- Phase 2: 12K (Tier 1 + Tier 2, no Tier 3)
+- Phase 2: 14K (Tier 1 + Tier 2, no Tier 3)
 - Phase 3: 2K (basic architecture, 2-4 modules)
 - Phase 4: 2K (3-5 patterns only)
 - Phase 5: 1K (tech stack overview)
 - Phase 6: 2K (high-risk items only)
 - Output: Markdown (audit report)
 - Reserve: 8K for formatting
+- **Total: 30K**
 
 **STANDARD Mode (15 min, ~60K tokens, 95% accuracy) ← DEFAULT**
 - Phase 1: 1K (full framework detection)
-- Phase 2: 30K (Tier 1 + Tier 2 + partial Tier 3)
+- Phase 2: 35K (Tier 1 + Tier 2 + partial Tier 3)
 - Phase 3: 5K (full architecture, 4-6 modules)
 - Phase 4: 5K (7-10 patterns with examples)
 - Phase 5: 1K (comprehensive tech stack)
 - Phase 6: 5K (all risks by severity)
 - Output: Markdown + JSON
 - Reserve: 8K for formatting
+- **Total: 60K**
 
 **DEEP Mode (30 min, ~90K tokens, 99% accuracy)**
 - Phase 1: 1K (full framework detection)
-- Phase 2: 50K (all Tier 1 + Tier 2 + Tier 3, full patterns)
+- Phase 2: 58K (all Tier 1 + Tier 2 + Tier 3, full patterns)
 - Phase 3: 8K (detailed architecture, 6-8 modules)
 - Phase 4: 8K (12-15 patterns with 10-15 line examples)
 - Phase 5: 2K (comprehensive tech stack with history)
 - Phase 6: 8K (all risks + remediation code)
 - Output: Markdown + JSON + Interactive
 - Reserve: 5K for formatting
+- **Total: 90K**
 
 ---
 
@@ -538,7 +573,7 @@ Exceed 100% of budget (>60K):
 ├─ Analyze what was loaded
 ├─ Save state.json
 ├─ Show: "Exceeded token budget for STANDARD mode"
-├─ Offer: (a) Generate report with loaded data, (b) Switch to QUICK, (c) Restart with DEEP
+├─ Offer: (a) Generate report with loaded data, (b) Switch to QUICK mode and retry, (c) Resume from checkpoint
 └─ Rationale: Prevents silent token overflow
 ```
 
@@ -659,7 +694,7 @@ These 5 scenarios verify discovery mode works across common use cases:
 
 ---
 
-#### Scenario 4: Tech Stack Modernization
+#### Scenario 4: Pattern Analysis & Discovery
 
 **User Request:** "What patterns does this project use?"
 
@@ -719,6 +754,8 @@ These 5 scenarios verify discovery mode works across common use cases:
 
 **Discovery Mode in Hub-and-Spoke:**
 
+Discovery mode follows a **strictly sequential pipeline** (not parallel) with each phase depending on prior phase outputs.
+
 ```
           User Input
           "Analyze this codebase"
@@ -729,43 +766,63 @@ These 5 scenarios verify discovery mode works across common use cases:
     └──────────┬──────────┘
                ↓
     ┌─────────────────────────────────────┐
-    │      Discovery Mode Pipeline        │
-    └──────┬─────────────────────────────┬─┘
-           ↓                             ↓
-    Phase 1&2 (Parallel)          Phase 3&4 (Sequential)
-    Framework + Context            Architecture + Patterns
-           ↓                             ↓
+    │  Phase 1: Framework Detection       │
+    │  (Detects tech stack, languages)    │
+    └──────────┬──────────────────────────┘
+               ↓
     ┌─────────────────────────────────────┐
-    │    Shared Analysis Pipeline         │
-    │  (Codebase, Files, Dependencies)    │
-    └──────┬─────────────────────────────┘
-           ↓
+    │  Phase 2: Context Research          │
+    │  (Analyzes files, dependencies)     │
+    └──────────┬──────────────────────────┘
+               ↓
     ┌─────────────────────────────────────┐
-    │    Phase 5&6 (Tech + Risk)          │
-    └──────┬─────────────────────────────┘
-           ↓
+    │  Phase 3: Architecture Detection    │
+    │  (Maps system architecture)         │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 4: Pattern Identification    │
+    │  (Extracts design + framework patterns) │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 5: Tech Stack Analysis       │
+    │  (Assesses versions, updates)       │
+    └──────────┬──────────────────────────┘
+               ↓
+    ┌─────────────────────────────────────┐
+    │  Phase 6: Risk Identification       │
+    │  (Identifies security, tech risks)  │
+    └──────────┬──────────────────────────┘
+               ↓
     ┌─────────────────────────────────────┐
     │    Audit Report Generator           │
     │  (Markdown + JSON + Interactive)    │
-    └──────┬─────────────────────────────┘
-           ↓
+    └──────────┬──────────────────────────┘
+               ↓
     Audit Report Output (varies by depth)
 ```
+
+**Sequential Guarantee:** Each phase completes before the next begins. Enables resumption from any checkpoint and predictable token budgeting.
 
 ---
 
 ### Continuity: Phase Entry/Exit Contracts
 
-Each phase passes data to the next in strict format:
+Each phase passes data to the next in strict format. **Two-tier pattern analysis:** Phase 2 identifies structural patterns; Phase 4 identifies deep patterns.
 
 | From Phase | Data Passed | To Phase | Used For |
 |------------|------------|----------|----------|
 | 1 (Framework) | `primary_language`, `frameworks[]`, `is_monorepo` | 2-6 | Context, pattern matching, risk assessment |
-| 2 (Context) | `files_selected[]`, `dependency_graph`, `patterns[]`, `team_conventions` | 3-6 | Architecture analysis, pattern identification, risk assessment |
-| 3 (Architecture) | `architecture_type`, `modules[]`, `data_flow`, `boundaries`, `metrics` | 4-6, Report | Module understanding, pattern context, risk prioritization |
-| 4 (Patterns) | `patterns[]`, `pattern_count`, `confidence` | Report | Pattern documentation, learning path |
+| 2 (Context) | `files_selected[]`, `dependency_graph`, `structural_patterns[]`, `team_conventions` | 3-6 | Architecture analysis, baseline for Phase 4 deep patterns, risk assessment |
+| 3 (Architecture) | `architecture_type`, `modules[]`, `data_flow`, `boundaries`, `metrics` | 4-6, Report | Module understanding, context for Phase 4 deep patterns, risk prioritization |
+| 4 (Patterns - Deep) | `patterns[]` (design + architectural + framework), `pattern_count`, `confidence` | Report | Deep pattern documentation, learning path |
 | 5 (Tech Stack) | `tech_stack`, `upgrade_opportunities`, `deprecated_packages` | Report | Modernization roadmap |
 | 6 (Risks) | `risks[]`, `risk_summary`, `remediation_steps` | Report | Risk prioritization, remediation planning |
+
+**Pattern Analysis Clarification:**
+- **Phase 2 (Structural Patterns):** Identifies code organization patterns, naming conventions, folder structure patterns from file analysis
+- **Phase 4 (Deep Patterns):** Builds on Phase 2 structural patterns to extract design patterns (Singleton, Factory, Observer), architectural patterns (MVC, layering), framework-specific patterns (React hooks, Django models), implementation patterns (error handling, testing)
 
 ---
 
