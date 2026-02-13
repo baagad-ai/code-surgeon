@@ -49,8 +49,6 @@ Use Discovery mode when you need to **understand** a codebase without a specific
 }
 ```
 
-**Why it matters:** Framework context determines which patterns and anti-patterns are relevant.
-
 ---
 
 ### Phase 2: Context Research (5 minutes)
@@ -86,8 +84,6 @@ Use Discovery mode when you need to **understand** a codebase without a specific
   }
 }
 ```
-
-**Why it matters:** Foundation for architecture detection and pattern identification.
 
 ---
 

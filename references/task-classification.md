@@ -363,6 +363,32 @@ All modes support 3 depth levels. Choose based on:
 
 ---
 
+## Mixed-Intent Scenarios
+
+If a requirement includes multiple concerns, use this routing:
+
+### Scenario 1: "Build something BUT worried about breaking things"
+→ TWO-STEP approach:
+1. First: `/code-surgeon "requirement" --mode=review`
+   (Assess risk, identify breaking changes)
+2. Then: `/code-surgeon "requirement" --mode=implementation`
+   (Plan implementation with risk mitigation)
+
+### Scenario 2: "Inherit a codebase AND need to implement feature"
+→ TWO-STEP approach:
+1. First: `/code-surgeon --mode=discovery`
+   (Understand architecture, patterns, tech stack)
+2. Then: `/code-surgeon "feature requirement" --mode=implementation`
+   (Plan feature with codebase knowledge)
+
+### Scenario 3: "Feature is slow AND might be vulnerable"
+→ SINGLE approach: `/code-surgeon --mode=optimization`
+(Optimization mode covers both performance AND security scanning in one analysis)
+
+**Rule of Thumb:** If concerns are sequential (understand → plan → implement), use two steps. If parallel (slow AND vulnerable), use one mode that covers both.
+
+---
+
 ## Post-Classification Checklist
 
 Before running `/code-surgeon`, verify:

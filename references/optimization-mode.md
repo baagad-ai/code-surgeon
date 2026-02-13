@@ -49,8 +49,6 @@ Use Optimization mode when you want to **improve existing code** without major a
 }
 ```
 
-**Why it matters:** Framework context determines optimization opportunities and techniques.
-
 ---
 
 ### Phase 2: Context Research (5 minutes)
@@ -85,8 +83,6 @@ Use Optimization mode when you want to **improve existing code** without major a
   "tech_stack": {...}
 }
 ```
-
-**Why it matters:** Foundation for performance profiling and vulnerability scanning.
 
 ---
 
@@ -220,7 +216,7 @@ Use Optimization mode when you want to **improve existing code** without major a
 
 ---
 
-### Phase 5: Efficiency Analysis (2 minutes)
+### Phase 5: Efficiency Analysis & Recommendations (2 minutes)
 
 **What happens:**
 1. **Code quality improvements:**
@@ -283,6 +279,77 @@ Use Optimization mode when you want to **improve existing code** without major a
 
 ---
 
+### Phase 6: Prioritization & Roadmapping (5 minutes)
+
+**What happens:**
+Integrate findings from Performance, Security, Efficiency analyses into:
+
+1. **Impact/Effort matrix:**
+   - High-impact, low-effort items first
+   - Dependency ordering
+   - Risk assessment
+
+2. **Dependency graph:**
+   - What must be fixed first
+   - What unblocks other fixes
+   - Sequencing constraints
+
+3. **Implementation roadmap:**
+   - Sequence of changes
+   - Estimated timeline
+   - Resource requirements
+
+**Output:**
+```json
+{
+  "prioritization": {
+    "critical": [
+      {
+        "issue": "SQL injection vulnerability in user query",
+        "fix": "Parameterize all SQL queries",
+        "severity": "critical",
+        "effort": "15 minutes",
+        "impact_score": 9.5,
+        "effort_score": 1,
+        "roi": 9.5
+      }
+    ],
+    "high": [
+      {
+        "issue": "N+1 query problem in user API",
+        "fix": "Batch load posts per user ID",
+        "severity": "high",
+        "effort": "30 minutes",
+        "impact_score": 8,
+        "effort_score": 3,
+        "roi": 2.67
+      }
+    ],
+    "medium": [...],
+    "low": [...]
+  },
+  "implementation_order": [
+    {
+      "rank": 1,
+      "fix": "Fix SQL injection vulnerability",
+      "blocking": [],
+      "unblocks": ["N+1 query optimization"],
+      "estimated_time": "15 minutes"
+    },
+    {
+      "rank": 2,
+      "fix": "N+1 query optimization",
+      "blocking": [],
+      "unblocks": [],
+      "estimated_time": "30 minutes"
+    }
+  ],
+  "estimated_timeline": "Estimated total: 2 hours for high-priority items, 1 week for all recommendations"
+}
+```
+
+---
+
 ## Output Format: Optimization Report
 
 Optimization mode generates an **Optimization Report** in Markdown:
@@ -311,6 +378,16 @@ Optimization mode generates an **Optimization Report** in Markdown:
 ## Expected Improvements
 [Performance metrics after optimization]
 ```
+
+---
+
+## Output Formats by Depth
+
+| Depth | Markdown | JSON | Interactive |
+|-------|----------|------|-------------|
+| **QUICK** | ✅ Optimization report (critical only) | ❌ | ❌ |
+| **STANDARD** | ✅ Optimization report (full) | ✅ Structured data | ❌ |
+| **DEEP** | ✅ Optimization report (exhaustive) | ✅ Structured data | ✅ Step-through CLI |
 
 ---
 

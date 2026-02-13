@@ -49,8 +49,6 @@ Use Review mode when you need to **assess the impact** of a change before implem
 }
 ```
 
-**Why it matters:** Framework context determines compatibility and breaking changes.
-
 ---
 
 ### Phase 2: Context Research (5 minutes)
@@ -78,8 +76,6 @@ Use Review mode when you need to **assess the impact** of a change before implem
   "team_conventions": {...}
 }
 ```
-
-**Why it matters:** Foundation for impact analysis and breaking change detection.
 
 ---
 
@@ -406,39 +402,71 @@ Review mode generates a **Risk Report** in Markdown:
 
 ---
 
+## Output Formats by Depth
+
+| Depth | Markdown | JSON | Interactive |
+|-------|----------|------|-------------|
+| **QUICK** | ✅ Risk report (summary) | ❌ | ❌ |
+| **STANDARD** | ✅ Risk report (full) | ✅ Structured data | ❌ |
+| **DEEP** | ✅ Risk report (exhaustive) | ✅ Structured data | ✅ Step-through CLI |
+
+---
+
 ## Risk Assessment Categories
 
 ### Critical Risks (Stop and Review)
-- Data loss or corruption
-- Security vulnerabilities introduced
-- External API/package contract breaks
-- Production outage risk
 
-**Action:** Don't proceed without explicit mitigation plan.
+**Characteristics:** Data loss, security exposure, system outage
+
+**Examples:**
+- Data loss: Database schema migration without backward compatibility (users lose data)
+- Security: Removing authentication from an endpoint (security breach)
+- API break: Changing API response format without versioning (clients break)
+- Credential exposure: Hardcoding API keys in code (credential exposure)
+
+**Action:** Do not proceed without explicit risk mitigation.
+
+---
 
 ### High Risks (Careful Review)
-- Major behavior changes
-- Multiple module impact
-- Large test impact
-- Complex migration path
 
-**Action:** Require code review + full test pass before merge.
+**Characteristics:** Breaking changes, third-party impacts, non-trivial refactoring
+
+**Examples:**
+- Breaking API: Renaming a public function that other teams depend on (API break)
+- Type change: Changing return type from object to array (consumer code fails)
+- Major bump: Upgrading dependency with major version bump (compatibility issues)
+- Required params: Adding required parameters to optional function (breaking change)
+
+**Action:** Document breaking changes and provide migration guide.
+
+---
 
 ### Medium Risks (Noted)
-- Minor behavior changes
-- Single module impact
-- Moderate test impact
-- Clear migration path
 
-**Action:** Document in PR, test thoroughly.
+**Characteristics:** Moderate impact changes, internal refactoring with external touch points
 
-### Low Risks (Monitor)
-- Isolated changes
-- No dependent code
-- Clear migration
-- Good test coverage
+**Examples:**
+- Module move: Moving utility function to different module (import paths change)
+- State restructure: Restructuring internal state management (internal but affects output)
+- Performance change: Changing performance characteristics (slow vs fast, memory usage)
+- Error messages: Modifying error messages (logging systems depend on these)
 
-**Action:** Standard code review process.
+**Action:** Document changes and notify affected teams.
+
+---
+
+### Low Risks (Proceed)
+
+**Characteristics:** Internal changes, optimizations, documentation updates
+
+**Examples:**
+- Internal rename: Refactoring internal variable names
+- Perf optimize: Improving performance without changing interface
+- Test addition: Adding tests without changing code
+- Documentation: Updating comments and documentation
+
+**Action:** Proceed normally, document in commit message.
 
 ---
 

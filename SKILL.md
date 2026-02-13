@@ -237,6 +237,30 @@ code-surgeon coordinates these specialized sub-skills:
 
 ---
 
+## File Tiering System (Tier 1/2/3)
+
+When analyzing codebases, code-surgeon uses a three-tier file selection system:
+
+**Tier 1 (Direct):** Entry points and main exports
+- Public API files, main components, root modules
+- Files that define the module's interface
+- Examples: `src/index.ts`, `src/main.tsx`, `src/auth.service.ts`
+
+**Tier 2 (Dependencies):** Files imported by Tier 1 files
+- Utilities, helpers, shared logic used by main files
+- Examples: `src/utils/helpers.ts`, `src/middleware/auth.middleware.ts`
+
+**Tier 3 (Patterns):** Widely-imported files that implement common patterns
+- Base classes, shared configurations, widely-used utilities
+- Examples: `src/base/BaseModel.ts`, `src/config/constants.ts`
+
+**Why three tiers?** This enables smart token budgeting:
+- QUICK mode: Tier 1 only (smallest context)
+- STANDARD mode: Tier 1 + Tier 2 (balanced context)
+- DEEP mode: All three tiers (exhaustive context)
+
+---
+
 ## Error Handling & Recovery
 
 code-surgeon is designed to never lose work.
@@ -358,6 +382,38 @@ code-surgeon is completely local and secure:
 | `/code-surgeon URL --depth=DEEP` | Thorough analysis (30 min, 99% accuracy) |
 | `/code-surgeon-resume <id>` | Resume interrupted session |
 | `/code-surgeon-clear-cache` | Clear analysis cache |
+
+---
+
+## Command Syntax Reference
+
+### Plain Text Requirement
+```bash
+/code-surgeon "Fix the authentication bug"
+/code-surgeon "Add dark mode toggle"
+```
+
+### GitHub Issue URL
+```bash
+/code-surgeon "https://github.com/org/repo/issues/123"
+```
+
+### Discovery Mode (No Requirement)
+```bash
+/code-surgeon --mode=discovery
+```
+
+### Specify Depth Mode
+```bash
+/code-surgeon "requirement" --depth=DEEP
+/code-surgeon "requirement" --mode=review --depth=STANDARD
+```
+
+### Combining Mode and Depth
+```bash
+/code-surgeon --mode=discovery --depth=DEEP
+/code-surgeon "requirement" --mode=optimization --depth=QUICK
+```
 
 ---
 
