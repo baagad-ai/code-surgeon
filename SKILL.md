@@ -50,34 +50,831 @@ Route your task to the correct mode based on your intent:
 
 ---
 
-## Hub-and-Spoke Architecture
+## Discovery Mode Orchestration
+
+Discovery mode performs deep codebase analysis to generate an **Audit Report** without requiring a specific change or requirement. This section details the exact 6-phase orchestration workflow.
+
+### Executive Summary
+
+**Duration:** 17 minutes (STANDARD) | **Token Budget:** 60K | **Accuracy:** 95%
+
+Discovery mode routes through 5 core sub-skills in strict sequence to understand architecture, patterns, and risks:
+
+```
+Framework Detection (2 min)
+    ↓
+Context Research (5 min)
+    ↓
+Architecture Detection (3 min)
+    ↓
+Pattern Identification (3 min)
+    ↓
+Tech Stack Analysis (2 min)
+    ↓
+Risk Identification (2 min)
+    ↓
+Audit Report (Generated Markdown)
+```
+
+### Phase 1: Framework Detection (2 minutes)
+
+**Sub-skill:** `/code-surgeon-framework-detector`
+
+**Purpose:** Detect tech stack, programming languages, frameworks, versions, and monorepo structure.
+
+**Input Contract:**
+```json
+{
+  "repo_root": "/absolute/path/to/repo",
+  "timeout_ms": 120000
+}
+```
+
+**Output Contract (Success):**
+```json
+{
+  "primary_language": "typescript",
+  "primary_framework": "React",
+  "frameworks": [
+    {
+      "name": "React",
+      "version": "18.2.0",
+      "language": "typescript",
+      "category": "frontend"
+    },
+    {
+      "name": "Express",
+      "version": "4.18.2",
+      "language": "typescript",
+      "category": "backend"
+    }
+  ],
+  "languages": [
+    {"language": "typescript", "file_count": 145, "percentage": 85},
+    {"language": "javascript", "file_count": 25, "percentage": 15}
+  ],
+  "is_monorepo": false,
+  "has_typescript": true,
+  "has_testing": true,
+  "has_documentation": true,
+  "confidence": 0.96
+}
+```
+
+**Error Handling:**
+- If repo not found: Stop immediately, return "Repository not found"
+- If unreadable: Stop immediately, return "Repository access denied"
+- If timeout: Return partial results with low confidence flag
+
+**Token Cost:** ~1K tokens
+
+---
+
+### Phase 2: Context Research (5 minutes)
+
+**Sub-skill:** `/code-surgeon-context-researcher`
+
+**Purpose:** Analyze codebase structure, build dependency graph, extract patterns, find team conventions.
+
+**Input Contract:**
+```json
+{
+  "issue_type": "architecture",
+  "requirements": ["Understand full codebase"],
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Output Contract (Success):**
+```json
+{
+  "files_selected": [
+    {
+      "path": "src/auth.ts",
+      "tier": 1,
+      "size_bytes": 2400,
+      "relevance": "critical",
+      "reason": "Core authentication module"
+    }
+  ],
+  "file_count": {
+    "tier_1": 8,
+    "tier_2": 25,
+    "tier_3": 12,
+    "total": 45
+  },
+  "dependency_graph": {
+    "src/auth.ts": {
+      "imports": ["src/utils.ts"],
+      "imported_by": ["src/api.ts"],
+      "impact": "critical"
+    }
+  },
+  "patterns_found": [
+    {
+      "name": "Custom Hook Pattern",
+      "example_file": "src/hooks/useAuth.ts",
+      "description": "React custom hooks for state management",
+      "location": "src/hooks/**/*.ts"
+    }
+  ],
+  "team_conventions": [
+    "camelCase for functions, PascalCase for components",
+    "Always use try-catch in async functions"
+  ]
+}
+```
+
+**Error Handling:**
+- If timeout: Return partial files found (Tier 1 only), mark as incomplete
+- If token budget exceeded: Remove Tier 3 patterns, retry with Tier 1-2 only
+- If no files found: Stop, return "Repository structure unreadable"
+
+**Token Cost:** 30K-90K tokens (varies by depth mode)
+
+---
+
+### Phase 3: Architecture Detection (3 minutes)
+
+**Sub-skill:** `/code-surgeon-architecture-analyzer`
+
+**Purpose:** Map system architecture, detect architectural style (monolithic/microservices), identify modules, data flow, and boundaries.
+
+**Input Contract:**
+```json
+{
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "files_selected": [...],  // from Phase 2
+  "dependency_graph": {...},  // from Phase 2
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Output Contract (Success):**
+```json
+{
+  "architecture_type": "Layered MVC",
+  "modules": [
+    {
+      "name": "Authentication",
+      "files": ["src/auth/", "src/middleware/auth.ts"],
+      "responsibilities": "User login, JWT validation, session management",
+      "dependencies": ["src/utils/", "src/db/"],
+      "impact": "critical"
+    }
+  ],
+  "data_flow": [
+    "Request → API → Auth → Service → Database",
+    "Response ← API ← Service ← Database"
+  ],
+  "boundaries": {
+    "client_server": "src/api/ (Express endpoints)",
+    "server_database": "src/db/ (ORM queries)"
+  },
+  "metrics": {
+    "module_count": 5,
+    "max_dependency_depth": 3,
+    "circular_dependencies": [],
+    "modularity_score": 78
+  }
+}
+```
+
+**Error Handling:**
+- If architecture unclear: Return best guess with low confidence
+- If circular dependencies found: Document and continue
+- If timeout: Return partial architecture with modules found so far
+
+**Token Cost:** ~3K-6K tokens
+
+---
+
+### Phase 4: Pattern Identification (3 minutes)
+
+**Sub-skill:** `/code-surgeon-pattern-identifier`
+
+**Purpose:** Extract design patterns (Singleton, Factory, Observer), architectural patterns (MVC, layering), framework-specific patterns (React hooks, Django models), and implementation patterns (error handling, testing, configuration).
+
+**Input Contract:**
+```json
+{
+  "primary_language": "typescript",
+  "primary_framework": "React",
+  "files_selected": [...],  // from Phase 2
+  "dependency_graph": {...},  // from Phase 2
+  "architecture_type": "Layered MVC",  // from Phase 3
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Output Contract (Success):**
+```json
+{
+  "patterns": [
+    {
+      "type": "Design Pattern",
+      "name": "Singleton",
+      "location": "src/services/Database.ts",
+      "description": "Database connection pool",
+      "impact": "Single shared database instance across app",
+      "confidence": 0.95
+    },
+    {
+      "type": "Architectural Pattern",
+      "name": "Custom Hook Pattern (React)",
+      "locations": ["src/hooks/useAuth.ts", "src/hooks/useFetch.ts"],
+      "description": "Encapsulates state logic in reusable hooks",
+      "impact": "Consistent state management across components",
+      "confidence": 0.98
+    },
+    {
+      "type": "Communication Pattern",
+      "name": "REST API",
+      "location": "src/api/",
+      "description": "HTTP-based API with standard CRUD endpoints",
+      "impact": "Standard HTTP communication with clients",
+      "confidence": 0.99
+    }
+  ],
+  "pattern_count": 12,
+  "most_common_pattern": "Custom Hook Pattern"
+}
+```
+
+**Error Handling:**
+- If no patterns found: Continue with empty patterns array
+- If confidence low (<0.6): Mark as uncertain
+- If timeout: Return patterns found so far
+
+**Token Cost:** ~3K-6K tokens
+
+---
+
+### Phase 5: Tech Stack Analysis (2 minutes)
+
+**Sub-skill:** Built-in analysis from Phase 1 framework output + dependency inspection
+
+**Purpose:** Assess tech stack quality, version freshness, maintenance status, community size, upgrade opportunities, deprecated packages.
+
+**Output Contract (Generated from Phase 1 data):**
+```json
+{
+  "tech_stack": {
+    "runtime": "Node.js 18.x",
+    "frontend": {
+      "framework": "React 18.2.0",
+      "status": "modern",
+      "notes": "Latest stable, actively maintained"
+    },
+    "backend": {
+      "framework": "Express 4.18.2",
+      "orm": "Sequelize 6.35.0",
+      "status": "stable",
+      "notes": "Production-ready but not latest"
+    },
+    "database": "PostgreSQL 14",
+    "testing": "Jest 29.5.0",
+    "build": "Webpack 5.88.0"
+  },
+  "upgrade_opportunities": [
+    {
+      "package": "Sequelize",
+      "current": "6.35.0",
+      "latest": "6.35.1",
+      "severity": "patch"
+    }
+  ],
+  "deprecated_packages": []
+}
+```
+
+**Token Cost:** ~1K tokens
+
+---
+
+### Phase 6: Risk Identification (2 minutes)
+
+**Sub-skill:** `/code-surgeon-risk-analyzer`
+
+**Purpose:** Identify security risks, technical risks, and architectural risks in the codebase.
+
+**Input Contract:**
+```json
+{
+  "files_selected": [...],  // from Phase 2
+  "primary_language": "typescript",
+  "frameworks": [...],  // from Phase 1
+  "architecture_type": "Layered MVC",  // from Phase 3
+  "modules": [...],  // from Phase 3
+  "repo_root": "/absolute/path/to/repo",
+  "depth_mode": "standard",
+  "timeout_seconds": 300
+}
+```
+
+**Output Contract (Success):**
+```json
+{
+  "risks": [
+    {
+      "severity": "HIGH",
+      "type": "Security",
+      "title": "Hardcoded API keys in config",
+      "location": "src/config/secrets.ts:45",
+      "description": "API keys hardcoded in source",
+      "impact": "Exposed credentials if repo compromised",
+      "remediation": "Move to environment variables (.env)"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "Technical",
+      "title": "Outdated dependency",
+      "location": "package.json",
+      "description": "Express-validator 7.0.0 (current 8.0.1)",
+      "impact": "Missing security patches",
+      "remediation": "npm update express-validator"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "Architectural",
+      "title": "No error handling in middleware",
+      "location": "src/middleware/errorHandler.ts",
+      "description": "Missing catch-all error handler",
+      "impact": "Unhandled errors crash server",
+      "remediation": "Add try-catch to all async functions"
+    }
+  ],
+  "risk_summary": {
+    "critical_count": 0,
+    "high_count": 1,
+    "medium_count": 2,
+    "low_count": 3
+  }
+}
+```
+
+**Error Handling:**
+- If no risks found: Return empty risks array (success)
+- If timeout: Return risks found so far
+- If PII/secrets detected: Mark as HIGH risk but don't output raw content
+
+**Token Cost:** ~3K-6K tokens
+
+---
+
+### Discovery Mode Sub-Skill Routing Table
+
+| Phase | Sub-Skill | Input Source | Output Used By | Token Budget | Duration |
+|-------|-----------|--------------|----------------|--------------|----------|
+| 1 | framework-detector | User repo_root | Phases 2-6 | ~1K | 2 min |
+| 2 | context-researcher | Phase 1 + user repo | Phases 3-6 | ~30-60K | 5 min |
+| 3 | architecture-analyzer | Phases 1-2 | Phases 4-6, Report | ~3-6K | 3 min |
+| 4 | pattern-identifier | Phases 1-3 | Phase 6, Report | ~3-6K | 3 min |
+| 5 | (Built-in) | Phase 1 data | Report | ~1K | 2 min |
+| 6 | risk-analyzer | Phases 1-5 | Report | ~3-6K | 2 min |
+
+---
+
+### Token Budgeting by Depth Mode
+
+**QUICK Mode (5 min, ~30K tokens, 85% accuracy)**
+- Phase 1: 1K (framework detection)
+- Phase 2: 12K (Tier 1 + Tier 2, no Tier 3)
+- Phase 3: 2K (basic architecture, 2-4 modules)
+- Phase 4: 2K (3-5 patterns only)
+- Phase 5: 1K (tech stack overview)
+- Phase 6: 2K (high-risk items only)
+- Output: Markdown (audit report)
+- Reserve: 8K for formatting
+
+**STANDARD Mode (15 min, ~60K tokens, 95% accuracy) ← DEFAULT**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 30K (Tier 1 + Tier 2 + partial Tier 3)
+- Phase 3: 5K (full architecture, 4-6 modules)
+- Phase 4: 5K (7-10 patterns with examples)
+- Phase 5: 1K (comprehensive tech stack)
+- Phase 6: 5K (all risks by severity)
+- Output: Markdown + JSON
+- Reserve: 8K for formatting
+
+**DEEP Mode (30 min, ~90K tokens, 99% accuracy)**
+- Phase 1: 1K (full framework detection)
+- Phase 2: 50K (all Tier 1 + Tier 2 + Tier 3, full patterns)
+- Phase 3: 8K (detailed architecture, 6-8 modules)
+- Phase 4: 8K (12-15 patterns with 10-15 line examples)
+- Phase 5: 2K (comprehensive tech stack with history)
+- Phase 6: 8K (all risks + remediation code)
+- Output: Markdown + JSON + Interactive
+- Reserve: 5K for formatting
+
+---
+
+### Depth Mode Behavior Details
+
+**QUICK Mode (Discovery)**
+- Loads only Tier 1 (direct impact files)
+- Pattern analysis minimal (3-5 patterns)
+- Architecture overview only (2-4 major modules)
+- High-severity risks only (Critical, High)
+- No historical analysis
+- No alternative architecture suggestions
+- Output: Markdown report only
+
+**STANDARD Mode (Discovery) - DEFAULT**
+- Loads Tier 1 + Tier 2 + selective Tier 3
+- Pattern analysis moderate (7-10 patterns)
+- Full architecture with data flow (4-8 modules)
+- All risks documented (all severity levels)
+- Team conventions identified
+- Upgrade recommendations included
+- Output: Markdown report + JSON structured data
+
+**DEEP Mode (Discovery)**
+- Loads all three tiers (complete context)
+- Comprehensive pattern analysis (12-15 patterns)
+- Detailed architecture with alternatives (6-10 modules)
+- All risks + specific remediation code
+- File history and change frequency
+- Full dependency graph with versions
+- Performance metrics and bottleneck analysis
+- Historical trends and technical debt timeline
+- Output: Markdown report + JSON data + Interactive navigator
+
+---
+
+### Error Handling for Discovery Mode
+
+**Sub-Skill Invocation Failure**
+```
+Phase [N] failed to complete.
+├─ First attempt: Retry once (wait 5 seconds)
+├─ If still fails:
+│  ├─ Save state.json immediately
+│  ├─ Show: "Phase [N] failed. Session saved."
+│  ├─ Show session ID: surgeon-20250213-abc123xyz
+│  ├─ Suggest: "/code-surgeon-resume surgeon-20250213-abc123xyz"
+│  └─ Stop execution
+└─ Rationale: Prevents loss of work, allows resume from checkpoint
+```
+
+**Token Budget Exceeded**
+```
+Approaching 85% of budget (51K/60K):
+├─ Log warning
+├─ Continue with existing files
+└─ Rationale: Safety threshold to prevent mid-phase overrun
+
+Exceed 100% of budget (>60K):
+├─ Stop loading new files
+├─ Analyze what was loaded
+├─ Save state.json
+├─ Show: "Exceeded token budget for STANDARD mode"
+├─ Offer: (a) Generate report with loaded data, (b) Switch to QUICK, (c) Restart with DEEP
+└─ Rationale: Prevents silent token overflow
+```
+
+**Repository Issues**
+```
+Repository not found:
+├─ Show error immediately in Phase 1
+├─ Stop execution (no state to save)
+└─ Suggest: "Check repo path and retry"
+
+Repository unreadable:
+├─ Show permission error in Phase 1
+├─ Stop execution
+└─ Suggest: "Check file permissions"
+
+Analysis timeout in Phase N:
+├─ Return partial results from completed phases
+├─ Mark incomplete status
+├─ Suggest: Switch to QUICK mode for faster analysis
+└─ Offer: Save and retry later
+```
+
+**PII/Secrets Detection**
+```
+During analysis, if API keys, passwords, or PII found:
+├─ Mark as HIGH security risk (don't output raw values)
+├─ Document location and type
+├─ Continue analysis (not blocking)
+├─ Highlight in Risk section
+└─ Note: PII detection is advisory, not enforcement
+```
+
+---
+
+### Test Scenarios
+
+These 5 scenarios verify discovery mode works across common use cases:
+
+#### Scenario 1: New Team Onboarding
+
+**User Request:** "I just joined the team. How does our system work?"
+
+**Command:** `/code-surgeon --mode=discovery --depth=STANDARD`
+
+**Expected Flow:**
+1. Phase 1: Detect React + Node.js + TypeScript
+2. Phase 2: Identify 40-50 files across 3 tiers
+3. Phase 3: Map layered MVC architecture with 4-6 modules
+4. Phase 4: Find 8-12 patterns (React hooks, Context, middleware chains)
+5. Phase 5: Report tech stack (React 18, Express 4, PostgreSQL 14)
+6. Phase 6: Identify 3-5 critical risks (outdated deps, missing error handling)
+
+**Output:**
+- Architecture overview showing main modules
+- Tech stack explanation
+- 8-12 key patterns they'll see
+- Top 3-5 risks and remediation
+
+**Success Criteria:**
+- New engineer can understand system without prior context
+- Clear learning path implied
+- Patterns guide code reading strategy
+
+---
+
+#### Scenario 2: Legacy Codebase Audit
+
+**User Request:** "Understand 15-year-old monolithic Rails app"
+
+**Command:** `/code-surgeon --mode=discovery --depth=DEEP`
+
+**Expected Flow:**
+1. Phase 1: Detect Rails + legacy Ruby version
+2. Phase 2: Load all tiers (may hit token budget)
+3. Phase 3: Map monolithic architecture with tight coupling
+4. Phase 4: Find legacy patterns (callbacks, before_filters, string-based deps)
+5. Phase 5: Assess tech stack (Rails 5, Ruby 2.6 - outdated)
+6. Phase 6: High risk count (security, deprecation, scalability)
+
+**Output:**
+- Monolithic architecture diagram
+- Legacy patterns documented
+- Upgrade roadmap (Rails 7, Ruby 3.x)
+- Security vulnerabilities (10-15 found)
+- Refactoring priorities
+
+**Success Criteria:**
+- Legacy patterns clearly identified
+- Modernization path clear
+- Security risks documented
+- Effort estimates provided
+
+---
+
+#### Scenario 3: Security Risk Assessment
+
+**User Request:** "Audit our codebase for security issues"
+
+**Command:** `/code-surgeon --mode=discovery --depth=DEEP`
+
+**Expected Flow:**
+1-4. Standard discovery phases
+5. Phase 5: List all dependencies with version status
+6. Phase 6: Deep security scan (hardcoded secrets, SQL injection, XSS, auth gaps)
+
+**Output:**
+- Dependency vulnerability report
+- Code-level security issues with locations
+- Authentication/authorization assessment
+- Input validation review
+- Remediation effort per issue
+
+**Success Criteria:**
+- All HIGH/CRITICAL risks identified
+- Remediation code provided (DEEP mode)
+- Impact severity clear
+- Implementation effort estimated
+
+---
+
+#### Scenario 4: Tech Stack Modernization
+
+**User Request:** "What patterns does this project use?"
+
+**Command:** `/code-surgeon --mode=discovery --depth=STANDARD`
+
+**Expected Flow:**
+1-2. Framework + context detection
+3-4. Identify architectural and framework-specific patterns
+5. Tech stack assessment (what's current, what's stale)
+6. Risk analysis (compatibility, deprecation)
+
+**Output:**
+- Pattern inventory (8-12 patterns)
+- Pattern usage locations
+- Framework conventions identified
+- Tech stack assessment
+- Upgrade recommendations
+
+**Success Criteria:**
+- Patterns documented with examples
+- Framework specifics highlighted
+- Upgrade path clear
+- Breaking change implications understood
+
+---
+
+#### Scenario 5: Microservices Architecture Mapping
+
+**User Request:** "Map system architecture of microservice platform"
+
+**Command:** `/code-surgeon --mode=discovery --depth=DEEP`
+
+**Expected Flow:**
+1. Phase 1: Detect multiple frameworks (API Gateway, 3-4 services)
+2. Phase 2: Load files from each service + gateway
+3. Phase 3: Map microservice architecture with service boundaries
+4. Phase 4: Find inter-service communication patterns
+5. Phase 5: Tech stack per service (consistent or fragmented?)
+6. Phase 6: Architecture risks (auth, transactions, monitoring)
+
+**Output:**
+- System architecture diagram with services
+- Service dependencies
+- Communication patterns (REST, gRPC, message queue)
+- Data consistency challenges
+- Observability gaps
+
+**Success Criteria:**
+- Service boundaries clear
+- Inter-service dependencies mapped
+- Communication patterns identified
+- Scaling challenges documented
+
+---
+
+### Integration with Hub-and-Spoke Model
+
+**Discovery Mode in Hub-and-Spoke:**
 
 ```
           User Input
+          "Analyze this codebase"
                ↓
     ┌─────────────────────┐
     │  Task Classifier    │
-    │  (this section)     │
+    │  (→ Discovery mode) │
     └──────────┬──────────┘
                ↓
-         ┌─────────────────────────────────────┐
-         │      Mode Router (select below)      │
-         └──────┬──────┬──────┬────────┬───────┘
-                ↓      ↓      ↓        ↓
-            Discovery Review Optim. Implementation
-              Mode    Mode   Mode     Planning
-                ↓      ↓      ↓        ↓
-         ┌──────────────────────────────────────┐
-         │    Shared Analysis Pipeline          │
-         │  (Codebase, Patterns, Conventions)   │
-         └──────────────────────────────────────┘
-                ↓
-         ┌──────────────────────────────────────┐
-         │    Mode-Specific Output Generator    │
-         │  (Report, Plan, Recommendations)     │
-         └──────────────────────────────────────┘
-                ↓
-         Output (varies by mode)
+    ┌─────────────────────────────────────┐
+    │      Discovery Mode Pipeline        │
+    └──────┬─────────────────────────────┬─┘
+           ↓                             ↓
+    Phase 1&2 (Parallel)          Phase 3&4 (Sequential)
+    Framework + Context            Architecture + Patterns
+           ↓                             ↓
+    ┌─────────────────────────────────────┐
+    │    Shared Analysis Pipeline         │
+    │  (Codebase, Files, Dependencies)    │
+    └──────┬─────────────────────────────┘
+           ↓
+    ┌─────────────────────────────────────┐
+    │    Phase 5&6 (Tech + Risk)          │
+    └──────┬─────────────────────────────┘
+           ↓
+    ┌─────────────────────────────────────┐
+    │    Audit Report Generator           │
+    │  (Markdown + JSON + Interactive)    │
+    └──────┬─────────────────────────────┘
+           ↓
+    Audit Report Output (varies by depth)
+```
+
+---
+
+### Continuity: Phase Entry/Exit Contracts
+
+Each phase passes data to the next in strict format:
+
+| From Phase | Data Passed | To Phase | Used For |
+|------------|------------|----------|----------|
+| 1 (Framework) | `primary_language`, `frameworks[]`, `is_monorepo` | 2-6 | Context, pattern matching, risk assessment |
+| 2 (Context) | `files_selected[]`, `dependency_graph`, `patterns[]`, `team_conventions` | 3-6 | Architecture analysis, pattern identification, risk assessment |
+| 3 (Architecture) | `architecture_type`, `modules[]`, `data_flow`, `boundaries`, `metrics` | 4-6, Report | Module understanding, pattern context, risk prioritization |
+| 4 (Patterns) | `patterns[]`, `pattern_count`, `confidence` | Report | Pattern documentation, learning path |
+| 5 (Tech Stack) | `tech_stack`, `upgrade_opportunities`, `deprecated_packages` | Report | Modernization roadmap |
+| 6 (Risks) | `risks[]`, `risk_summary`, `remediation_steps` | Report | Risk prioritization, remediation planning |
+
+---
+
+### Session Management for Discovery
+
+**State File Location:**
+```
+.claude/planning/sessions/<session-id>/
+├─ state.json              ← Complete session state (all phases)
+├─ AUDIT.md                ← Human-readable audit report
+├─ audit.json              ← Machine-readable data
+├─ interactive.json        ← CLI navigation data
+└─ logs/
+   └─ discovery.log        ← Phase-by-phase execution log
+```
+
+**Resumption Logic:**
+- If Phase 2 times out: Save state after Phase 1, resume at Phase 2
+- If Phase 5 fails: Retry once, then save and resume
+- If token budget exceeded: Mark where overflow occurred, resume with QUICK mode
+
+---
+
+### Discovery Mode Success Criteria
+
+A successful discovery analysis meets ALL of these:
+
+- [ ] 6-phase workflow completed without critical errors
+- [ ] All 5 sub-skills invoked with valid input/output contracts
+- [ ] Token budget not exceeded (with <10% safety margin)
+- [ ] Audit report generated in required format(s)
+- [ ] Architecture clearly documented with module responsibilities
+- [ ] 5-10 patterns identified with locations and descriptions
+- [ ] All HIGH/CRITICAL risks documented with remediation
+- [ ] No hallucinated files or patterns
+- [ ] Session resumable if interrupted
+- [ ] Depth mode behavior correct (QUICK < STANDARD < DEEP)
+
+---
+
+## Hub-and-Spoke Architecture with Mode-Specific Routing
+
+```
+                    User Input
+                         ↓
+              ┌───────────────────────┐
+              │  Task Classifier      │
+              │  (Q1-Q4 decision tree)│
+              └───────────┬───────────┘
+                          ↓
+            ┌─────────────────────────────────────────┐
+            │         Mode Router (select one)         │
+            └──┬────────┬───────────┬──────────┬──────┘
+               ↓        ↓           ↓          ↓
+          DISCOVERY   REVIEW    OPTIMIZATION  IMPLEMENTATION
+            MODE      MODE        MODE        PLANNING MODE
+               ↓        ↓           ↓          ↓
+         ┌─────────────────────────────────────────────┐
+         │  Shared Analysis Pipeline (All Modes)       │
+         │  ├─ Phase 1: Framework Detection            │
+         │  ├─ Phase 2: Context Research               │
+         │  ├─ Phase 3: Mode-Specific Analysis         │
+         │  ├─ Phase 4: Pattern/Risk/Impact Analysis   │
+         │  ├─ Phase 5: Tech Stack / Planning          │
+         │  └─ Phase 6: Risks / Prompts / Validation   │
+         └──────────────┬────────────────────────────┘
+                        ↓
+              ┌──────────────────────┐
+              │  Discovery Mode Only │
+              ├──────────────────────┤
+              │ Specialist Sub-Skills│
+              │ ├─ Architecture      │
+              │ │   Analyzer (Ph 3)  │
+              │ ├─ Pattern           │
+              │ │   Identifier (Ph4) │
+              │ ├─ Risk Analyzer     │
+              │ │   (Ph 6)           │
+              │ └─ Output: Audit     │
+              │    Report            │
+              └──────────┬───────────┘
+                         ↓
+              ┌──────────────────────┐
+              │    Output Generator  │
+              │ (Format by depth     │
+              │  and mode)           │
+              └──────────┬───────────┘
+                         ↓
+                    Output
+              (Audit Report, Plan,
+               Recommendations, etc.)
+```
+
+**Discovery Mode Sub-Skill Flow:**
+
+```
+Phase 1: Framework Detection
+         ↓
+Phase 2: Context Research
+         ↓
+Phase 3: Architecture Analyzer (Discovery-Specific)
+         ↓
+Phase 4: Pattern Identifier (Discovery-Specific)
+         ↓
+Phase 5: Tech Stack Analysis (Built-in)
+         ↓
+Phase 6: Risk Analyzer (Discovery-Specific)
+         ↓
+    Audit Report
+    (Markdown, JSON, or Interactive)
 ```
 
 ---
@@ -159,7 +956,7 @@ code-surgeon is an **orchestrator** that:
 2. **Classifies** the task against the decision tree
 3. **Validates** and checks for PII/secrets
 4. **Dispatches** to mode-specific analysis pipeline:
-   - **Discovery mode:** Architecture Detector → Pattern Identifier → Risk Analyzer
+   - **Discovery mode:** Framework Detector (parallel) Context Researcher → Architecture Analyzer → Pattern Identifier → Tech Stack Analyzer → Risk Analyzer
    - **Review mode:** Impact Analyzer → Breaking Change Detector → Pre-flight Validator
    - **Optimization mode:** Performance Profiler → Security Scanner → Efficiency Analyzer
    - **Implementation Planning mode:** Issue Analyzer + Framework Detector (parallel) → Context Researcher → Implementation Planner → Surgical Prompt Generator
