@@ -410,6 +410,16 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 - 🐛 **Report Bugs:** [GitHub Issues](https://github.com/baagad-ai/code-surgeon/issues)
 - 💬 **Ask Questions:** Create an issue with `question` label
 
+## Repository Synchronization
+
+This repository is maintained with **automated synchronization** between the development and published repositories. See [SYNC_PROTOCOL.md](SYNC_PROTOCOL.md) for details on:
+
+- How the post-commit hook automatically syncs changes to the published GitHub repository
+- Manual recovery procedures if sync fails
+- File structure and history in both repositories
+
+**Key Point**: The canonical development version is at `/Users/prajwalmishra/.claude/skills/code-surgeon/`. All work should be done there; the published GitHub repo is automatically synced.
+
 ---
 
 <div align="center">
