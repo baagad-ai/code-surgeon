@@ -1,6 +1,6 @@
 ---
 name: code-surgeon
-description: Multi-modal codebase analyzer that routes to Discovery, Review, Optimization, or Implementation Planning based on task classification. Generates surgical prompts, breaking change analysis, and team-convention-aware plans.
+description: Analyze, plan, review, and optimize any codebase across 4 modes: Discovery (understand architecture and risks), Review (validate changes and detect breaking changes), Optimization (find bottlenecks and vulnerabilities), Implementation Planning (generate step-by-step guidance). Works with React, Django, Rails, Go, Rust, and 30+ frameworks. Use when analyzing codebase structure, assessing feature safety, finding security issues, planning implementations, or discovering performance problems.
 ---
 
 # code-surgeon
