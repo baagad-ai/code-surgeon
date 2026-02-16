@@ -75,6 +75,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-02-16
+
+### Added
+- Multi-mode architecture: Discovery, Review, Optimization, Implementation Planning
+- 6-phase standardized workflow per mode
+- Progressive disclosure with modular reference files
+- 3 depth modes: QUICK (5 min), STANDARD (15 min), DEEP (30 min)
+- File tiering system (Tier 1/2/3) for smart file selection
+- JSON schema contracts for all sub-skills
+- Enterprise-ready validation and error handling
+
+### Changed
+- Complete README redesign for human consumption
+  - Capability-first structure
+  - Real-world examples for each mode
+  - Decision guides and anti-patterns
+  - Visual process diagrams
+- Reorganized SKILL.md with mode-specific orchestration
+- Enhanced documentation with scenario-based guidance
+
+### Fixed
+- Improved accuracy of codebase analysis
+- Better breaking change detection across all modes
+- Enhanced security vulnerability scanning
+
+---
+
 ## [Unreleased]
 
 ### Planned
