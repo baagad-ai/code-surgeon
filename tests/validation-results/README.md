@@ -31,7 +31,19 @@ This directory contains validation results for the critical path tests of code-s
    - Complete reference for what successful execution produces
    - Before/after analysis examples
 
-4. **README.md** - This file
+4. **TASK-2.5.2-COMPLETION-REPORT.md** - Task 2.5.2 Completion
+   - Comprehensive task completion summary
+   - All 4 critical path tests detailed
+   - Validation results per test
+   - Overall compliance metrics
+
+5. **MIXED-INTENT-VALIDATION.md** - Task 2.5.5 Results ✅ NEW
+   - 5 mixed-intent scenario validations
+   - Multi-step workflow testing
+   - Routing accuracy and context transfer analysis
+   - Recommendations for enhancement
+
+6. **README.md** - This file
    - Overview and navigation guide
    - Quick reference for test results
    - Instructions for future testing phases
@@ -202,12 +214,20 @@ Test that output adapts to different audiences:
 - Product managers (business focus)
 - DevOps engineers (infrastructure focus)
 
-### Task 2.5.5: Validate Mixed-Intent Scenarios
+### Task 2.5.5: Validate Mixed-Intent Scenarios ✅ COMPLETE
+
+**Status:** ✅ ALL TESTS PASS
 
 Test multi-mode workflows:
-- Discovery → Implementation → Review (D→IP→R)
-- Discovery → Optimization → Implementation (D→O→IP)
-- Complex 4-step workflows (D→R→IP→O)
+- MX-1: Build + Risk Assessment (Review → IP) ✅
+- MX-2: Understanding + Building (Discovery → IP) ✅
+- MX-3: Performance + Security (Single Optimization) ✅
+- MX-4: Upgrade Planning (Review → Optimization) ✅
+- MX-5: Architecture Overhaul (Discovery → Review → Opt → IP) ✅
+
+**Results:** 100% routing accuracy, 100% context transfer, 0 critical issues
+
+See: **MIXED-INTENT-VALIDATION.md**
 
 ### Task 2.5.6: Validate Error Handling & Edge Cases
 
@@ -310,6 +330,6 @@ For questions about these results:
 
 ---
 
-**Status:** ✅ All critical path tests PASS
+**Status:** ✅ Task 2.5.2 PASS | ✅ Task 2.5.5 PASS
 **Date:** 2026-02-16
-**Next Review:** Task 2.5.3 (Depth Mode Validation)
+**Next Review:** Task 2.5.3 (Depth Mode Validation) / Task 2.5.6 (Edge Cases & Error Handling)
