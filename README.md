@@ -115,14 +115,16 @@ Choose based on your needs:
 | **STANDARD** | 15 min | 95% | 60K tokens | Normal work (default) |
 | **DEEP** | 30 min | 99% | 90K tokens | Risky changes, high stakes |
 
-### 6-Phase Standardized Workflow
+### 6-Phase Standardized Workflow (All Modes)
 
-Every mode follows this predictable pipeline:
+Every mode follows this exact 6-phase pipeline:
 
-1. **Framework Detection** (2 min) — Auto-detect tech stack, versions, languages
-2. **Context Research** (5 min) — Analyze structure, map dependencies, identify patterns
-3. **Mode-Specific Analysis** (3 phases, 3-8 min) — Deep dive appropriate to mode
-4. **Output Generation** (2-5 min) — Format as Markdown, JSON, or interactive
+1. **Framework Detection** (2 min) — Auto-detect tech stack, versions, languages, monorepo status
+2. **Context Research** (5 min) — Analyze codebase structure, dependencies, patterns, conventions
+3. **Mode-Specific Deep Dive** (3 min) — Architecture / Impact / Performance Detection / Planning
+4. **Secondary Analysis** (3 min) — Patterns / Breaking Changes / Security / Design Choices
+5. **Synthesis** (2-5 min) — Tech Stack / Pre-Flight Validation / Efficiency / Implementation Details
+6. **Final Assessment** (1-5 min) — Risk Analysis / Safety Verification / Prioritization / Output Formatting
 
 ### Framework Support
 
@@ -168,18 +170,28 @@ Every mode follows this predictable pipeline:
 
 ### Unified 6-Phase Pipeline (All Modes)
 
-Every mode follows this standardized workflow:
+Every mode follows this exact 6-phase standardized workflow:
 
 ```
 Phase 1: Framework Detection (2 min)
-  ↓ Detects tech stack, languages, frameworks
+  ↓ Auto-detect tech stack, versions, languages
 Phase 2: Context Research (5 min)
-  ↓ Analyzes codebase structure, dependencies, patterns
-Phase 3: Mode-Specific Analysis (3-8 min)
-  ↓ Deep dive: Architecture / Impact / Bottlenecks / Implementation
-Phase 4: Output Generation (2-5 min)
-  ↓ Formats as Markdown, JSON, or Interactive
+  ↓ Analyze structure, map dependencies, identify patterns
+Phase 3: Mode-Specific Analysis (3 min)
+  ↓ Architecture / Impact Analysis / Performance Detection
+Phase 4: Deeper Analysis (3 min)
+  ↓ Patterns / Breaking Changes / Security Scanning
+Phase 5: Synthesis (2-5 min)
+  ↓ Tech Stack / Pre-Flight / Efficiency Analysis
+Phase 6: Final Assessment (1-5 min)
+  ↓ Risks / Safety / Prioritization
 ```
+
+**All 4 modes use identical Phase 1-2, then diverge into mode-specific Phases 3-6:**
+- **Discovery:** Architecture Detector → Pattern Identifier → Tech Stack → Risk Analyzer
+- **Review:** Impact Analyzer → Breaking Change Detector → Pre-Flight Validator → Safety Verifier
+- **Optimization:** Performance Profiler → Security Scanner → Efficiency Analyzer → Prioritization Roadmapper
+- **Implementation:** Strategic Planning → Research → Design → Surgical Prompts
 
 ---
 
