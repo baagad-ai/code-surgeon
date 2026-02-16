@@ -1,29 +1,22 @@
-# Dependencies
-node_modules/
-package-lock.json
-yarn.lock
+# Development/Testing Files (NOT in published repo)
+tests/
+docs/
+PRODUCTION-SIGN-OFF-*.md
+DEPLOYMENT-CHECKLIST-*.md
+FINAL-VALIDATION-SUMMARY.md
+HANDOFF-TO-DEPLOYMENT.md
+SYNC_PROTOCOL.md
+CONTRIBUTING.md
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# System files
 .DS_Store
-Thumbs.db
-
-# Logs
+.sync.log
 *.log
-npm-debug.log*
-
-# Temporary
-.tmp/
-temp/
-dist/
-
-# Environment
 .env
 .env.local
-.env.*.local
+
+# Temporary files
+*.tmp
+*.swp
+*~
+.*.swp
