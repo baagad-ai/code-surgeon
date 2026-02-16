@@ -1,17 +1,19 @@
 {
   "name": "code-surgeon",
-  "version": "1.0.0",
-  "description": "Transform GitHub issues and requirements into precise implementation plans with surgical prompts—step-by-step, file-by-file guidance for code changes.",
+  "version": "1.2.0",
+  "description": "Stop analyzing code manually. Understand your codebase, review changes for safety, find performance issues, or plan implementations with surgical precision. 4 modes, zero setup, complete confidence.",
   "type": "skill",
   "author": "Prajwal Mishra",
   "license": "MIT",
   "keywords": [
     "ai",
     "code-analysis",
+    "code-review",
     "implementation-planning",
     "surgical-prompts",
     "codebase-understanding",
-    "github-issues",
+    "performance-optimization",
+    "security-audit",
     "feature-planning",
     "refactoring",
     "breaking-changes",
@@ -32,8 +34,8 @@
   "skills": {
     "code-surgeon": {
       "name": "code-surgeon",
-      "description": "Analyze GitHub issues or plain text requirements and generate precise implementation plans with surgical prompts guiding code changes.",
-      "version": "1.0.0"
+      "description": "Understand, review, optimize, and plan code with 4 powerful modes. Discovery mode analyzes architecture. Review mode validates changes. Optimization mode finds issues. Implementation mode plans step-by-step.",
+      "version": "1.2.0"
     }
   }
 }
