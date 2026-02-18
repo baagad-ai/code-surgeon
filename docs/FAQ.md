@@ -45,7 +45,7 @@ No, it needs to be in your Claude skills directory to work.
 ### Does it need internet?
 **Partially.** When you pass a GitHub URL (`/code-surgeon "https://github.com/org/repo/issues/234"`), the skill fetches the issue content from the GitHub API — this is an **external network call**. GitHub issue content is treated as untrusted external data.
 
-**Your local codebase never leaves your machine.** Only the GitHub issue metadata (title, description, labels) is fetched, and only when you explicitly provide a GitHub URL. Plain-text requirements (`/code-surgeon "Add JWT refresh"`) require no internet access at all.
+**Your codebase is processed through your existing Claude session** — the same channel used for all Claude Code interactions. No additional third-party services receive your code. Only the GitHub issue metadata (title, description, labels) is fetched from GitHub's API, and only when you explicitly provide a GitHub URL. Plain-text requirements (`/code-surgeon "Add JWT refresh"`) trigger no external calls beyond your Claude session.
 
 ---
 
@@ -114,10 +114,10 @@ No practical limit. code-surgeon uses smart file selection.
 Yes! Detects Lerna, Turborepo, yarn workspaces.
 
 ### What about private code?
-Your local codebase is analyzed entirely on your machine — code never leaves. The only exception is when you use GitHub issue URLs: the issue's public metadata is fetched from the GitHub API. Private repository issues require authentication and are not accessible without your GitHub token.
+Your codebase is processed exclusively through your existing Claude session — the same channel used for all Claude Code interactions. No additional third-party services receive your code. The only separate external call is when you use GitHub issue URLs: the issue's public metadata is fetched from the GitHub API. Private repository issues require authentication and are not accessible without your GitHub token.
 
 ### Can I use it with closed-source?
-Yes! It's completely local. Create `.claude/team-guidelines.md` to enforce your security rules.
+Yes. Your codebase is processed exclusively through your Claude session (same as standard Claude Code). No additional third-party API calls are made beyond your existing Claude session. Create `.claude/team-guidelines.md` to enforce your security rules.
 
 ---
 

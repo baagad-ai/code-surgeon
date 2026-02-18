@@ -52,9 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic retry logic for transient failures
   - Clear error messages with actionable suggestions
 - Security and privacy features
-  - Completely local analysis (no external API calls)
+  - Codebase processed through your existing Claude session only (no additional third-party API calls)
+  - Codebase context handled within your Claude session, same as all Claude Code interactions
+  - GitHub issue URLs make one GitHub API call to fetch issue metadata; plain-text requirements require no external calls
   - Automatic PII and secret detection
-  - Code never leaves your machine
   - Path traversal prevention
   - Input validation on all user inputs
 - Caching and performance optimization
@@ -69,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Details
 - 5,286 lines of code and documentation
-- Zero external dependencies
+- No additional third-party dependencies beyond your existing Claude session
 - Compatible with 35+ agent platforms
 - Fully tested and production-ready
 
