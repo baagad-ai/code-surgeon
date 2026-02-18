@@ -43,7 +43,9 @@ No, it's plug-and-play. But creating `.claude/team-guidelines.md` helps quality.
 No, it needs to be in your Claude skills directory to work.
 
 ### Does it need internet?
-No, it's completely local. Code never leaves your machine.
+**Partially.** When you pass a GitHub URL (`/code-surgeon "https://github.com/org/repo/issues/234"`), the skill fetches the issue content from the GitHub API — this is an **external network call**. GitHub issue content is treated as untrusted external data.
+
+**Your local codebase never leaves your machine.** Only the GitHub issue metadata (title, description, labels) is fetched, and only when you explicitly provide a GitHub URL. Plain-text requirements (`/code-surgeon "Add JWT refresh"`) require no internet access at all.
 
 ---
 
@@ -112,7 +114,7 @@ No practical limit. code-surgeon uses smart file selection.
 Yes! Detects Lerna, Turborepo, yarn workspaces.
 
 ### What about private code?
-Completely safe. Everything is local, code never leaves your machine.
+Your local codebase is analyzed entirely on your machine — code never leaves. The only exception is when you use GitHub issue URLs: the issue's public metadata is fetched from the GitHub API. Private repository issues require authentication and are not accessible without your GitHub token.
 
 ### Can I use it with closed-source?
 Yes! It's completely local. Create `.claude/team-guidelines.md` to enforce your security rules.
@@ -217,8 +219,12 @@ chmod -R 755 ~/.claude/skills/code-surgeon
 - Verify state.json is not corrupted
 
 ### PII detection blocked my generation
-- Sanitize your code (remove API keys, emails, secrets)
-- Retry after removing sensitive data
+The Risk Analyzer (Phase 6) flags detected secrets and PII as HIGH severity risks — it identifies them in your codebase but does **not** output their raw content. This includes:
+- Hardcoded API keys, tokens, and passwords
+- Email addresses and personal data in source files
+- Private keys or credentials in config files
+
+To resolve: Remove or move the flagged secrets to environment variables, then re-run.
 
 ### Plans seem incomplete
 - Try DEEP mode for more thorough analysis
