@@ -1,6 +1,6 @@
 {
   "name": "code-surgeon",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Stop analyzing code manually. Understand your codebase, review changes for safety, find performance issues, or plan implementations with surgical precision. 4 modes, zero setup, complete confidence.",
   "type": "skill",
   "author": "Prajwal Mishra",
@@ -35,7 +35,7 @@
     "code-surgeon": {
       "name": "code-surgeon",
       "description": "Understand, review, optimize, and plan code with 4 powerful modes. Discovery mode analyzes architecture. Review mode validates changes. Optimization mode finds issues. Implementation mode plans step-by-step.",
-      "version": "1.2.0"
+      "version": "1.2.1"
     }
   }
 }

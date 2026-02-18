@@ -103,6 +103,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-02-18
+
+### Security
+- **Fixed metadata poisoning (MEDIUM):** Removed false claims that analysis is "completely local" with "no external API calls" and "code never leaves your machine" from `CHANGELOG.md` and `docs/FAQ.md`. These claims were inaccurate — codebase context is processed through the user's existing Claude session (same as all Claude Code interactions). No additional third-party API calls are made beyond the user's Claude session.
+- **Fixed indirect prompt injection gap (LOW):** Added `## Security: Injection-Resistant Output Generation` section to `surgical-prompt-generator-SKILL.md`. The final output stage previously had zero injection defense. New rules cover: rephrase-not-quote for derived content, scan-and-neutralize of upstream untrusted strings, propagation of upstream `⚠️ SECURITY ALERT` warnings into generated `PLAN.md`, and explicit coverage of plain-text requirements as untrusted (not just GitHub URLs).
+
+---
+
 ## [Unreleased]
 
 ### Planned
